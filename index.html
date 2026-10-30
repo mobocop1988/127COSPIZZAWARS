@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +6,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>127 COS Pizza Wars '26</title>
-
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -138,16 +138,16 @@
   .scoreboard {
     display: flex;
     justify-content: center;
-    gap: 25px;
+    gap: 18px;
     margin: 10px auto 18px auto;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: var(--neon-cyan);
     text-shadow: 0 0 6px var(--neon-cyan);
     flex-wrap: wrap;
   }
 
   .score-box {
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.85);
     border: 2px solid var(--neon-cyan);
     padding: 6px 14px;
     box-shadow: 0 0 8px rgba(0,243,255,0.4);
@@ -159,6 +159,23 @@
   .score-box span.val {
     color: var(--neon-pink);
     font-weight: bold;
+  }
+
+  .score-box.pilot-badge {
+    border-color: var(--neon-yellow);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .score-box.pilot-badge:hover {
+    box-shadow: 0 0 14px var(--neon-yellow);
+    background: rgba(255, 230, 0, 0.15);
+  }
+
+  .score-box.points-box {
+    border-color: var(--neon-green);
+  }
+  .score-box.points-box span.val {
+    color: var(--neon-green);
   }
 
   .sync-active-badge {
@@ -183,6 +200,7 @@
     gap: 12px;
     margin-bottom: 20px;
     flex-wrap: wrap;
+    align-items: center;
   }
 
   .tab-btn {
@@ -210,15 +228,149 @@
     box-shadow: 0 0 16px var(--neon-pink);
   }
 
-  .admin-trigger-btn {
+  .leader-tab-btn {
     border-color: var(--neon-yellow);
     color: var(--neon-yellow);
     box-shadow: 0 0 8px rgba(255,230,0,0.3);
   }
-  .admin-trigger-btn:hover {
+  .leader-tab-btn:hover {
     background: var(--neon-yellow);
     color: #000;
     box-shadow: 0 0 16px var(--neon-yellow);
+  }
+  .leader-tab-btn.active {
+    background: var(--neon-yellow);
+    color: #000;
+    border-color: #fff;
+    box-shadow: 0 0 18px var(--neon-yellow);
+  }
+
+  .full-view-tab-btn {
+    border-color: var(--neon-purple);
+    color: #df96ff;
+    box-shadow: 0 0 8px rgba(176,38,255,0.3);
+  }
+  .full-view-tab-btn:hover {
+    background: var(--neon-purple);
+    color: #fff;
+    box-shadow: 0 0 16px var(--neon-purple);
+  }
+  .full-view-tab-btn.active {
+    background: var(--neon-purple);
+    color: #fff;
+    border-color: #fff;
+    box-shadow: 0 0 18px var(--neon-purple);
+  }
+
+  .fullscreen-btn {
+    border-color: var(--neon-green);
+    color: var(--neon-green);
+    box-shadow: 0 0 8px rgba(57,255,20,0.3);
+  }
+  .fullscreen-btn:hover {
+    background: var(--neon-green);
+    color: #000;
+    box-shadow: 0 0 16px var(--neon-green);
+  }
+
+  .admin-trigger-btn {
+    border-color: #ff3333;
+    color: #ff3333;
+    box-shadow: 0 0 8px rgba(255,51,51,0.3);
+  }
+  .admin-trigger-btn:hover {
+    background: #ff3333;
+    color: #000;
+    box-shadow: 0 0 16px #ff3333;
+  }
+
+  /* Full Bracket Control Toolbar */
+  .full-bracket-toolbar {
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1350px;
+    margin: 0 auto 15px auto;
+    padding: 10px 18px;
+    background: rgba(0, 0, 0, 0.85);
+    border: 2px solid var(--neon-purple);
+    box-shadow: 0 0 14px rgba(176,38,255,0.4);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-label {
+    font-size: 0.65rem;
+    color: var(--neon-yellow);
+  }
+
+  .toolbar-link {
+    color: var(--neon-cyan);
+    font-size: 0.65rem;
+    text-decoration: none;
+    border: 1px solid var(--neon-cyan);
+    padding: 4px 8px;
+    background: #000;
+    transition: all 0.1s ease;
+  }
+  .toolbar-link:hover {
+    background: var(--neon-cyan);
+    color: #000;
+  }
+
+  .zoom-btn {
+    background: #000;
+    color: #fff;
+    border: 1px solid var(--neon-pink);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.6rem;
+    padding: 5px 8px;
+    cursor: pointer;
+  }
+  .zoom-btn:hover {
+    background: var(--neon-pink);
+    color: #fff;
+  }
+  .zoom-btn.active-zoom {
+    background: var(--neon-pink);
+    color: #fff;
+    font-weight: bold;
+    box-shadow: 0 0 8px var(--neon-pink);
+  }
+
+  /* Section Dividers for Full View */
+  .section-divider-title {
+    display: none;
+    padding: 12px 16px;
+    margin: 30px 25px 15px 25px;
+    background: rgba(18, 10, 38, 0.95);
+    border-left: 6px solid var(--neon-yellow);
+    border-top: 2px solid var(--neon-yellow);
+    border-bottom: 2px solid var(--neon-yellow);
+    color: var(--neon-yellow);
+    font-size: 0.95rem;
+    text-shadow: 0 0 10px var(--neon-yellow);
+    letter-spacing: 1px;
+    box-shadow: 0 0 12px rgba(255,230,0,0.3);
+  }
+
+  /* Full Bracket Container & Zoom Wrapper */
+  #bracket-super-container {
+    width: 100%;
+    position: relative;
+  }
+
+  #zoomable-bracket-wrapper {
+    transition: transform 0.2s ease;
+    transform-origin: top center;
+    width: 100%;
   }
 
   /* Main Tournament Bracket Containers */
@@ -324,6 +476,13 @@
     font-weight: bold;
   }
 
+  .points-awarded-badge {
+    color: var(--neon-green);
+    font-size: 0.55rem;
+    margin-left: 6px;
+    text-shadow: 0 0 6px var(--neon-green);
+  }
+
   .team-slot {
     display: flex;
     justify-content: space-between;
@@ -421,6 +580,136 @@
     margin: 2px 0;
   }
 
+  /* High Score Leaderboard Styling */
+  .leaderboard-panel {
+    max-width: 820px;
+    margin: 15px auto 40px auto;
+    background: rgba(18, 10, 38, 0.95);
+    border: 4px solid var(--neon-yellow);
+    box-shadow: 0 0 25px rgba(255,230,0,0.4);
+    padding: 24px;
+  }
+
+  .leader-title {
+    text-align: center;
+    color: var(--neon-yellow);
+    font-size: 1.3rem;
+    margin-bottom: 8px;
+    text-shadow: 0 0 10px var(--neon-yellow);
+  }
+
+  .leader-subtitle {
+    text-align: center;
+    font-size: 0.65rem;
+    color: var(--neon-cyan);
+    margin-bottom: 22px;
+    letter-spacing: 1px;
+  }
+
+  .leader-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.72rem;
+  }
+
+  .leader-table th {
+    background: #000;
+    color: var(--neon-pink);
+    padding: 12px 10px;
+    text-align: left;
+    border-bottom: 2px solid var(--neon-pink);
+    letter-spacing: 1px;
+  }
+
+  .leader-table td {
+    padding: 12px 10px;
+    border-bottom: 1px dashed rgba(255,255,255,0.15);
+  }
+
+  .leader-table tr:hover td {
+    background: rgba(255, 230, 0, 0.08);
+  }
+
+  .leader-table tr.current-user-row td {
+    background: rgba(57, 255, 20, 0.14);
+    color: var(--neon-green);
+    font-weight: bold;
+    border-left: 3px solid var(--neon-green);
+  }
+
+  .rank-col {
+    color: var(--neon-yellow);
+    width: 80px;
+  }
+
+  .rank-1 { color: #ffd700; text-shadow: 0 0 8px #ffd700; }
+  .rank-2 { color: #00f3ff; text-shadow: 0 0 8px #00f3ff; }
+  .rank-3 { color: #ff007f; text-shadow: 0 0 8px #ff007f; }
+
+  /* Generic Modals */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.88);
+    backdrop-filter: blur(4px);
+    z-index: 1005;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .modal-box {
+    background: #0a0518;
+    border: 4px solid var(--neon-cyan);
+    box-shadow: 0 0 25px var(--neon-cyan);
+    padding: 24px;
+    width: 90%;
+    max-width: 480px;
+    text-align: center;
+  }
+
+  .modal-title {
+    color: var(--neon-yellow);
+    font-size: 1rem;
+    margin-bottom: 14px;
+    text-shadow: 0 0 8px var(--neon-yellow);
+  }
+
+  .modal-desc {
+    font-size: 0.65rem;
+    line-height: 1.6;
+    margin-bottom: 18px;
+    color: #fff;
+  }
+
+  .modal-input {
+    width: 100%;
+    background: #000;
+    border: 2px solid var(--neon-yellow);
+    color: var(--neon-yellow);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.85rem;
+    padding: 12px;
+    text-align: center;
+    margin-bottom: 16px;
+    outline: none;
+    text-transform: uppercase;
+    box-shadow: 0 0 12px rgba(255,230,0,0.3);
+  }
+  .modal-input:focus {
+    border-color: var(--neon-pink);
+    box-shadow: 0 0 16px rgba(255,0,127,0.5);
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  }
+
   /* Admin Drawer Modal */
   .admin-overlay {
     display: none;
@@ -441,7 +730,7 @@
     border: 4px solid var(--neon-yellow);
     box-shadow: 0 0 25px var(--neon-yellow);
     width: 90%;
-    max-width: 760px;
+    max-width: 780px;
     max-height: 85vh;
     display: flex;
     flex-direction: column;
@@ -536,108 +825,6 @@
     color: var(--neon-green);
   }
 
-  /* Password Modal */
-  .auth-modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.88);
-    backdrop-filter: blur(4px);
-    z-index: 1001;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .auth-box {
-    background: #0a0518;
-    border: 4px solid var(--neon-pink);
-    box-shadow: 0 0 25px var(--neon-pink);
-    padding: 24px;
-    width: 90%;
-    max-width: 440px;
-    text-align: center;
-  }
-
-  .auth-title {
-    color: var(--neon-pink);
-    font-size: 0.9rem;
-    margin-bottom: 16px;
-    text-shadow: 0 0 8px var(--neon-pink);
-  }
-
-  .auth-input {
-    width: 100%;
-    background: #000;
-    border: 2px solid var(--neon-cyan);
-    color: var(--neon-yellow);
-    font-family: 'Press Start 2P', monospace;
-    font-size: 0.8rem;
-    padding: 10px;
-    text-align: center;
-    margin-bottom: 15px;
-    outline: none;
-    box-shadow: 0 0 10px rgba(0,243,255,0.3);
-  }
-
-  .auth-input:focus {
-    border-color: var(--neon-pink);
-    box-shadow: 0 0 15px rgba(255,0,127,0.5);
-  }
-
-  .auth-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-  }
-
-  /* Vote Confirmation Modal */
-  .confirm-modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(4px);
-    z-index: 1002;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .confirm-box {
-    background: #0a0518;
-    border: 4px solid var(--neon-cyan);
-    box-shadow: 0 0 25px var(--neon-cyan);
-    padding: 22px;
-    width: 90%;
-    max-width: 460px;
-    text-align: center;
-  }
-
-  .confirm-title {
-    color: var(--neon-yellow);
-    font-size: 0.9rem;
-    margin-bottom: 12px;
-    text-shadow: 0 0 8px var(--neon-yellow);
-  }
-
-  .confirm-text {
-    font-size: 0.65rem;
-    line-height: 1.6;
-    margin-bottom: 20px;
-    color: #fff;
-  }
-
-  .confirm-actions {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-  }
-
   /* Champion Marquee Announcement */
   .champion-ribbon {
     display: none;
@@ -678,12 +865,26 @@
   <div class="arcade-banner">
     <h1 class="title-main">127 COS PIZZA WARS '26</h1>
   </div>
-  
+
   <div class="scoreboard">
-    <div class="score-box">CREDITS: <span id="user-credits" class="val">8</span></div>
-    <div class="score-box">ACTIVE STAGE: <span id="current-stage-title" class="val">ROUND 1</span></div>
-    <div class="score-box">TOTAL BALLOTS: <span id="total-ballots" class="val">0</span></div>
-    <div class="score-box"><span class="sync-active-badge">● LIVE SYNC ACTIVE</span></div>
+    <div class="score-box pilot-badge" onclick="promptPlayerNameModal()" title="Click to Change Pilot Name">
+      PLAYER: <span id="current-player-name" class="val">---</span>
+    </div>
+    <div class="score-box points-box">
+      SCORE: <span id="current-player-score" class="val">0</span> PTS
+    </div>
+    <div class="score-box">
+      CREDITS: <span id="user-credits" class="val">8</span>
+    </div>
+    <div class="score-box">
+      STAGE: <span id="current-stage-title" class="val">ROUND 1</span>
+    </div>
+    <div class="score-box">
+      TOTAL BALLOTS: <span id="total-ballots" class="val">0</span>
+    </div>
+    <div class="score-box">
+      <span class="sync-active-badge">● LIVE SYNC ACTIVE</span>
+    </div>
   </div>
 
   <div id="champion-marquee" class="champion-ribbon">
@@ -691,70 +892,140 @@
   </div>
 
   <div class="nav-tabs">
-    <button class="tab-btn active" onclick="switchView('winners')">WINNERS BRACKET</button>
-    <button class="tab-btn" onclick="switchView('losers')">LOSERS BRACKET</button>
-    <button class="tab-btn" onclick="switchView('grand')">GRAND FINALS</button>
+    <button class="tab-btn active" id="tab-winners" onclick="switchView('winners')">WINNERS BRACKET</button>
+    <button class="tab-btn" id="tab-losers" onclick="switchView('losers')">LOSERS BRACKET</button>
+    <button class="tab-btn" id="tab-grand" onclick="switchView('grand')">GRAND FINALS</button>
+    <button class="tab-btn full-view-tab-btn" id="tab-all" onclick="switchView('all')">FULL BRACKET VIEW ⛶</button>
+    <button class="tab-btn leader-tab-btn" id="tab-leaderboard" onclick="switchView('leaderboard')">HIGH SCORES ★</button>
+    <button class="tab-btn fullscreen-btn" id="fullscreen-toggle-btn" onclick="toggleFullscreen()" title="Toggle Fullscreen">FULLSCREEN ⛶</button>
     <button class="tab-btn admin-trigger-btn" onclick="requestAdminAuth()">OPERATOR / ADMIN PANEL</button>
+  </div>
+
+  <!-- Full Bracket Quick Controls (Active in Full View) -->
+  <div class="full-bracket-toolbar" id="full-bracket-toolbar">
+    <div class="toolbar-group">
+      <span class="toolbar-label">JUMP TO:</span>
+      <a href="#winners-anchor" class="toolbar-link" onclick="sfxSwitch()">▲ WINNERS</a>
+      <a href="#losers-anchor" class="toolbar-link" onclick="sfxSwitch()">▼ LOSERS</a>
+      <a href="#grand-anchor" class="toolbar-link" onclick="sfxSwitch()">★ FINALS</a>
+    </div>
+    <div class="toolbar-group">
+      <span class="toolbar-label">VIEW SCALE:</span>
+      <button class="zoom-btn" onclick="setBracketZoom(0.65)">65%</button>
+      <button class="zoom-btn" onclick="setBracketZoom(0.8)">80%</button>
+      <button class="zoom-btn active-zoom" id="zoom-100-btn" onclick="setBracketZoom(1.0)">100%</button>
+      <button class="zoom-btn" onclick="toggleFullscreen()">TOGGLE FULLSCREEN</button>
+    </div>
   </div>
 </header>
 
-<!-- Winners Bracket View -->
-<div id="winners-view" class="bracket-container active-view">
-  <div class="bracket-rounds-wrapper">
-    <!-- Round 1 -->
-    <div class="bracket-round">
-      <div class="round-header">STAGE 1: ROUND OF 16</div>
-      <div class="bouts-list" id="winners-round-1"></div>
+<div id="bracket-super-container">
+  <div id="zoomable-bracket-wrapper">
+
+    <!-- Section Heading for Full View -->
+    <div id="winners-anchor" class="section-divider-title">► WINNERS BRACKET (UPPER DIVISION)</div>
+
+    <!-- Winners Bracket View -->
+    <div id="winners-view" class="bracket-container active-view">
+      <div class="bracket-rounds-wrapper">
+        <!-- Round 1 -->
+        <div class="bracket-round">
+          <div class="round-header">STAGE 1: ROUND OF 16</div>
+          <div class="bouts-list" id="winners-round-1"></div>
+        </div>
+        <!-- Round 2 -->
+        <div class="bracket-round">
+          <div class="round-header">STAGE 2: QUARTERFINALS</div>
+          <div class="bouts-list" id="winners-round-2"></div>
+        </div>
+        <!-- Round 3 -->
+        <div class="bracket-round">
+          <div class="round-header">STAGE 3: SEMIFINALS</div>
+          <div class="bouts-list" id="winners-round-3"></div>
+        </div>
+        <!-- Round 4 -->
+        <div class="bracket-round">
+          <div class="round-header">STAGE 4: WINNERS FINAL</div>
+          <div class="bouts-list" id="winners-round-4"></div>
+        </div>
+      </div>
     </div>
-    <!-- Round 2 -->
-    <div class="bracket-round">
-      <div class="round-header">STAGE 2: QUARTERFINALS</div>
-      <div class="bouts-list" id="winners-round-2"></div>
+
+    <!-- Section Heading for Full View -->
+    <div id="losers-anchor" class="section-divider-title">► LOSERS BRACKET (DOUBLE ELIMINATION REDEMPTION)</div>
+
+    <!-- Losers Bracket View -->
+    <div id="losers-view" class="bracket-container">
+      <div class="bracket-rounds-wrapper">
+        <div class="bracket-round">
+          <div class="round-header">LOSERS ROUND 1</div>
+          <div class="bouts-list" id="losers-round-1"></div>
+        </div>
+        <div class="bracket-round">
+          <div class="round-header">LOSERS ROUND 2</div>
+          <div class="bouts-list" id="losers-round-2"></div>
+        </div>
+        <div class="bracket-round">
+          <div class="round-header">LOSERS ROUND 3</div>
+          <div class="bouts-list" id="losers-round-3"></div>
+        </div>
+        <div class="bracket-round">
+          <div class="round-header">LOSERS ROUND 4</div>
+          <div class="bouts-list" id="losers-round-4"></div>
+        </div>
+        <div class="bracket-round">
+          <div class="round-header">LOSERS FINAL</div>
+          <div class="bouts-list" id="losers-round-5"></div>
+        </div>
+      </div>
     </div>
-    <!-- Round 3 -->
-    <div class="bracket-round">
-      <div class="round-header">STAGE 3: SEMIFINALS</div>
-      <div class="bouts-list" id="winners-round-3"></div>
+
+    <!-- Section Heading for Full View -->
+    <div id="grand-anchor" class="section-divider-title">► GRAND FINALS CHAMPIONSHIP MATCHUP</div>
+
+    <!-- Grand Finals View -->
+    <div id="grand-view" class="bracket-container">
+      <div style="max-width: 580px; margin: 20px auto;">
+        <div class="round-header">CHAMPIONSHIP BOUT</div>
+        <div id="grand-finals-bout" style="margin-top: 25px;"></div>
+      </div>
     </div>
-    <!-- Round 4 -->
-    <div class="bracket-round">
-      <div class="round-header">STAGE 4: WINNERS FINAL</div>
-      <div class="bouts-list" id="winners-round-4"></div>
-    </div>
+
   </div>
 </div>
 
-<!-- Losers Bracket View -->
-<div id="losers-view" class="bracket-container">
-  <div class="bracket-rounds-wrapper">
-    <div class="bracket-round">
-      <div class="round-header">LOSERS ROUND 1</div>
-      <div class="bouts-list" id="losers-round-1"></div>
-    </div>
-    <div class="bracket-round">
-      <div class="round-header">LOSERS ROUND 2</div>
-      <div class="bouts-list" id="losers-round-2"></div>
-    </div>
-    <div class="bracket-round">
-      <div class="round-header">LOSERS ROUND 3</div>
-      <div class="bouts-list" id="losers-round-3"></div>
-    </div>
-    <div class="bracket-round">
-      <div class="round-header">LOSERS ROUND 4</div>
-      <div class="bouts-list" id="losers-round-4"></div>
-    </div>
-    <div class="bracket-round">
-      <div class="round-header">LOSERS FINAL</div>
-      <div class="bouts-list" id="losers-round-5"></div>
-    </div>
+<!-- High Scores Leaderboard View -->
+<div id="leaderboard-view" class="bracket-container">
+  <div class="leaderboard-panel">
+    <h2 class="leader-title">★ TOP PIZZA PREDICTORS // HALL OF FAME ★</h2>
+    <p class="leader-subtitle">10 PTS AWARDED FOR EACH CORRECT MATCHUP PREDICTION</p>
+
+    <table class="leader-table">
+      <thead>
+        <tr>
+          <th class="rank-col">RANK</th>
+          <th>PILOT (LAST NAME)</th>
+          <th style="text-align: center;">CORRECT PICKS</th>
+          <th style="text-align: right;">TOTAL SCORE</th>
+        </tr>
+      </thead>
+      <tbody id="leaderboard-tbody">
+        <!-- Rendered dynamically -->
+      </tbody>
+    </table>
   </div>
 </div>
 
-<!-- Grand Finals View -->
-<div id="grand-view" class="bracket-container">
-  <div style="max-width: 580px; margin: 40px auto;">
-    <div class="round-header">CHAMPIONSHIP BOUT</div>
-    <div id="grand-finals-bout" style="margin-top: 30px;"></div>
+<!-- Player Last Name Initial Prompt Modal -->
+<div id="player-modal" class="modal-overlay">
+  <div class="modal-box" style="border-color: var(--neon-yellow); box-shadow: 0 0 25px var(--neon-yellow);">
+    <h3 class="modal-title">INSERT COIN // IDENTIFY PILOT</h3>
+    <p class="modal-desc">Enter your <strong>LAST NAME</strong> to register your bracket predictions and compete for the High Score Leaderboard!</p>
+    <input type="text" id="player-name-input" class="modal-input" placeholder="ENTER LAST NAME..." maxlength="20" autocomplete="off">
+    <div class="modal-actions">
+      <button class="tab-btn" onclick="savePlayerName()" style="border-color: var(--neon-green); color: var(--neon-green);">CONFIRM PILOT</button>
+      <button class="tab-btn" onclick="closePlayerModal()">CANCEL</button>
+    </div>
   </div>
 </div>
 
@@ -775,12 +1046,12 @@
   </div>
 </div>
 
-<!-- Password Modal -->
-<div id="auth-modal" class="auth-modal">
-  <div class="auth-box">
-    <h3 class="auth-title">INSERT OPERATOR KEY</h3>
-    <input type="password" id="admin-password-input" class="auth-input" placeholder="ENTER CODE..." autocomplete="off">
-    <div class="auth-buttons">
+<!-- Operator Password Modal -->
+<div id="auth-modal" class="modal-overlay">
+  <div class="modal-box" style="border-color: var(--neon-pink); box-shadow: 0 0 25px var(--neon-pink);">
+    <h3 class="modal-title" style="color: var(--neon-pink);">INSERT OPERATOR KEY</h3>
+    <input type="password" id="admin-password-input" class="modal-input" placeholder="ENTER CODE..." autocomplete="off">
+    <div class="modal-actions">
       <button class="tab-btn" onclick="verifyAdminPassword()" style="border-color: var(--neon-green); color: var(--neon-green);">VERIFY</button>
       <button class="tab-btn" onclick="closeAuthModal()">CANCEL</button>
     </div>
@@ -789,11 +1060,11 @@
 </div>
 
 <!-- Vote Switch Confirmation Modal -->
-<div id="confirm-modal" class="confirm-modal">
-  <div class="confirm-box">
-    <h3 class="confirm-title">CHANGE YOUR VOTE?</h3>
-    <p class="confirm-text" id="confirm-modal-text">You currently have a vote registered. Would you like to switch your vote?</p>
-    <div class="confirm-actions">
+<div id="confirm-modal" class="modal-overlay">
+  <div class="modal-box">
+    <h3 class="modal-title">CHANGE YOUR VOTE?</h3>
+    <p class="modal-desc" id="confirm-modal-text">You currently have a vote registered. Would you like to switch your vote?</p>
+    <div class="modal-actions">
       <button class="tab-btn" id="confirm-switch-btn" style="border-color: var(--neon-green); color: var(--neon-green);">CONFIRM SWITCH</button>
       <button class="tab-btn" onclick="closeConfirmModal()">CANCEL</button>
     </div>
@@ -801,7 +1072,7 @@
 </div>
 
 <footer>
-  127 COS PIZZA WARS '26 • ALL VOTES STORED VIA LOCAL ROTATING SALTED HASH • RETRO SYNTH AUDIO FX ENABLED
+  127 COS PIZZA WARS '26 • ALL VOTES STORED VIA LOCAL ROTATING SALTED HASH • FULLSCREEN ARCADE MODE ENABLED
 </footer>
 
 <script>
@@ -829,6 +1100,12 @@ function sfxCoin() {
 }
 function sfxBuzz() { play8BitTone(120, 'sawtooth', 0.18); }
 function sfxSwitch() { play8BitTone(440, 'triangle', 0.1); }
+function sfxFanfare() {
+  play8BitTone(523.25, 'square', 0.1);
+  setTimeout(() => play8BitTone(659.25, 'square', 0.1), 100);
+  setTimeout(() => play8BitTone(783.99, 'square', 0.1), 200);
+  setTimeout(() => play8BitTone(1046.50, 'square', 0.3), 300);
+}
 
 /**
  * BACKGROUND FLOATING PIZZAS (3x Density)
@@ -852,27 +1129,51 @@ function initBackgroundPizzas() {
 initBackgroundPizzas();
 
 /**
- * REAL-TIME BROADCAST SYNC & STORAGE KEYS
+ * STORAGE KEYS & BROADCAST SYNCHRONIZATION
  */
-const STORAGE_KEY = 'PW26_TOURNAMENT_STATE_V3';
+const STORAGE_KEY = 'PW26_TOURNAMENT_STATE_V7';
 const CLIENT_SECRET_KEY = 'PW26_CLIENT_EPHEMERAL_SECRET';
+const PLAYER_NAME_KEY = 'PW26_PLAYER_LAST_NAME';
+const VOTE_STORAGE_KEY = 'PW26_USER_VOTES_LEDGER';
 const broadcastChannel = new BroadcastChannel('pizza_wars_sync_bus');
 
-// Ephemeral client secret
+// Ephemeral client secret uniquely identifying this device/browser
 let clientSecret = localStorage.getItem(CLIENT_SECRET_KEY);
 if (!clientSecret) {
-  clientSecret = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-    .map(b => b.toString(16).padStart(2, '0')).join('');
+  try {
+    clientSecret = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch(e) {
+    clientSecret = 'sec_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+  }
   localStorage.setItem(CLIENT_SECRET_KEY, clientSecret);
 }
 
-// SHA-256 WebCrypto utility
+// SHA-256 WebCrypto utility with offline math fallback
 async function sha256(str) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  try {
+    if (window.crypto && crypto.subtle) {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+  } catch(e) {}
+  // Deterministic fallback
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16).padStart(16, '0');
 }
 
-// Generate salted verification hash for a given bout
+/**
+ * Generate salted verification hash for a given bout.
+ * Tied directly to the client secret & daily epoch so that changing player names
+ * does NOT allow double voting or reset voting credits.
+ */
 async function generateBoutSaltedHash(boutId) {
   const dateEpoch = new Date().toISOString().slice(0, 10);
   const salt = `PW26_SALT_EPOCH_${dateEpoch}`;
@@ -880,7 +1181,76 @@ async function generateBoutSaltedHash(boutId) {
 }
 
 /**
+ * PLAYER IDENTITY & REGISTRATION POPUP
+ */
+function checkPlayerIdentity() {
+  const storedName = localStorage.getItem(PLAYER_NAME_KEY);
+  if (!storedName) {
+    promptPlayerNameModal();
+  } else {
+    document.getElementById('current-player-name').innerText = storedName.toUpperCase();
+    updateLeaderboardAndScore();
+  }
+}
+
+function promptPlayerNameModal() {
+  const stored = localStorage.getItem(PLAYER_NAME_KEY) || '';
+  document.getElementById('player-name-input').value = stored;
+  document.getElementById('player-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('player-name-input').focus(), 50);
+}
+
+function closePlayerModal() {
+  const stored = localStorage.getItem(PLAYER_NAME_KEY);
+  if (!stored) {
+    alert("A PILOT LAST NAME IS REQUIRED TO PARTICIPATE.");
+    return;
+  }
+  document.getElementById('player-modal').style.display = 'none';
+}
+
+function savePlayerName() {
+  const raw = document.getElementById('player-name-input').value.trim();
+  if (!raw) {
+    sfxBuzz();
+    alert("PLEASE ENTER A VALID LAST NAME TO PROCEED.");
+    return;
+  }
+  const cleanName = raw.toUpperCase().replace(/[^A-Z0-9\-\'\s]/g, '');
+  const oldName = (localStorage.getItem(PLAYER_NAME_KEY) || '').trim().toUpperCase();
+
+  localStorage.setItem(PLAYER_NAME_KEY, cleanName);
+  document.getElementById('current-player-name').innerText = cleanName;
+  document.getElementById('player-modal').style.display = 'none';
+
+  // If old name existed in leaderboard under raw name key, migrate it
+  if (appState.leaderboard) {
+    if (oldName && appState.leaderboard[oldName]) {
+      delete appState.leaderboard[oldName];
+    }
+  }
+
+  sfxFanfare();
+  updateLeaderboardAndScore();
+  renderBracket();
+}
+
+document.getElementById('player-name-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') savePlayerName();
+  if (e.key === 'Escape') closePlayerModal();
+});
+
+/**
  * INITIAL SEEDED TEAMS
+ * 16 competitors:
+ * #1 Knollas, #16 Cici's
+ * #8 Picasso's, #9 Old Chicago
+ * #5 Oak & Pie, #12 Papa Johns
+ * #4 Ziggy's, #13 Papa Murphy's
+ * #6 Gambino's, #11 Dominoes
+ * #3 Casey's, #14 Pizza Hut
+ * #7 Pizza Johns, #10 Godfather's
+ * #2 Wichita Brewing Co, #15 Pizza Ranch
  */
 const SEEDED_TEAMS = [
   { seed: 1, name: "Knollas" },
@@ -895,10 +1265,10 @@ const SEEDED_TEAMS = [
   { seed: 11, name: "Dominoes" },
   { seed: 3, name: "Casey's" },
   { seed: 14, name: "Pizza Hut" },
-  { seed: 7, name: "Pizza Ranch" },
+  { seed: 7, name: "Pizza Johns" },
   { seed: 10, name: "Godfather's" },
   { seed: 2, name: "Wichita Brewing Co" },
-  { seed: 15, name: "Little Caesar's" }
+  { seed: 15, name: "Pizza Ranch" }
 ];
 
 /**
@@ -908,13 +1278,14 @@ function createDefaultState() {
   return {
     activeStage: 1,
     champion: null,
+    leaderboard: {}, // Keyed by clientSecret: { id, name, score, correctCount, lastUpdated }
     bouts: {
-      // Winners Round 1 (All starting at 0 votes)
-      'W1': { id: 'W1', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[0], t2: SEEDED_TEAMS[1], v1: 0, v2: 0, locked: false, winner: null },
-      'W2': { id: 'W2', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[2], t2: SEEDED_TEAMS[3], v1: 0, v2: 0, locked: false, winner: null },
-      'W3': { id: 'W3', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[4], t2: SEEDED_TEAMS[5], v1: 0, v2: 0, locked: false, winner: null },
-      'W4': { id: 'W4', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[6], t2: SEEDED_TEAMS[7], v1: 0, v2: 0, locked: false, winner: null },
-      'W5': { id: 'W5', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[8], t2: SEEDED_TEAMS[9], v1: 0, v2: 0, locked: false, winner: null },
+      // Winners Round 1 (All 16 teams correctly mapped, starting at 0 votes)
+      'W1': { id: 'W1', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[0],  t2: SEEDED_TEAMS[1],  v1: 0, v2: 0, locked: false, winner: null },
+      'W2': { id: 'W2', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[2],  t2: SEEDED_TEAMS[3],  v1: 0, v2: 0, locked: false, winner: null },
+      'W3': { id: 'W3', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[4],  t2: SEEDED_TEAMS[5],  v1: 0, v2: 0, locked: false, winner: null },
+      'W4': { id: 'W4', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[6],  t2: SEEDED_TEAMS[7],  v1: 0, v2: 0, locked: false, winner: null },
+      'W5': { id: 'W5', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[8],  t2: SEEDED_TEAMS[9],  v1: 0, v2: 0, locked: false, winner: null },
       'W6': { id: 'W6', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[10], t2: SEEDED_TEAMS[11], v1: 0, v2: 0, locked: false, winner: null },
       'W7': { id: 'W7', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[12], t2: SEEDED_TEAMS[13], v1: 0, v2: 0, locked: false, winner: null },
       'W8': { id: 'W8', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[14], t2: SEEDED_TEAMS[15], v1: 0, v2: 0, locked: false, winner: null },
@@ -938,7 +1309,7 @@ function createDefaultState() {
       'L3': { id: 'L3', stage: 2, bracket: 'losers', round: 1, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
       'L4': { id: 'L4', stage: 2, bracket: 'losers', round: 1, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
 
-      // Losers Round 2 (Winners of L1-L4 vs Losers of W9-W12)
+      // Losers Round 2
       'L5': { id: 'L5', stage: 3, bracket: 'losers', round: 2, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
       'L6': { id: 'L6', stage: 3, bracket: 'losers', round: 2, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
       'L7': { id: 'L7', stage: 3, bracket: 'losers', round: 2, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
@@ -948,7 +1319,7 @@ function createDefaultState() {
       'L9':  { id: 'L9', stage: 4, bracket: 'losers', round: 3, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
       'L10': { id: 'L10', stage: 4, bracket: 'losers', round: 3, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
 
-      // Losers Round 4 (Winners of L9-L10 vs Losers of W13-W14)
+      // Losers Round 4
       'L11': { id: 'L11', stage: 5, bracket: 'losers', round: 4, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
       'L12': { id: 'L12', stage: 5, bracket: 'losers', round: 4, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
 
@@ -966,7 +1337,14 @@ let appState = loadState();
 function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (raw) {
-    try { return JSON.parse(raw); } catch (e) {}
+    try {
+      const parsed = JSON.parse(raw);
+      if (!parsed.leaderboard) parsed.leaderboard = {};
+      // Ensure seeded teams are sound
+      if (parsed.bouts && parsed.bouts['W1'] && parsed.bouts['W1'].t2 && parsed.bouts['W1'].t2.name === "Cici's") {
+        return parsed;
+      }
+    } catch (e) {}
   }
   const defaultObj = createDefaultState();
   saveState(defaultObj, false);
@@ -980,21 +1358,34 @@ function saveState(state, broadcast = true) {
   }
 }
 
-// Live Synchronizer
+// Live Synchronizer across tabs & windows
 broadcastChannel.onmessage = (event) => {
   if (event.data && event.data.type === 'STATE_UPDATE') {
     appState = event.data.state;
     renderBracket();
+    updateLeaderboardAndScore(false);
     if (document.getElementById('admin-overlay').style.display === 'flex') {
       renderAdminControls();
     }
+  } else if (event.data && event.data.type === 'TOURNAMENT_RESET') {
+    appState = createDefaultState();
+    localStorage.removeItem(VOTE_STORAGE_KEY);
+    localStorage.removeItem(PLAYER_NAME_KEY);
+    document.getElementById('current-player-name').innerText = '---';
+    document.getElementById('current-player-score').innerText = '0';
+    renderBracket();
+    renderLeaderboardTable();
+    promptPlayerNameModal();
   }
 };
 
 window.addEventListener('storage', (e) => {
   if (e.key === STORAGE_KEY && e.newValue) {
-    appState = JSON.parse(e.newValue);
-    renderBracket();
+    try {
+      appState = JSON.parse(e.newValue);
+      renderBracket();
+      updateLeaderboardAndScore(false);
+    } catch(err) {}
   }
 });
 
@@ -1002,16 +1393,17 @@ window.addEventListener('storage', (e) => {
 setInterval(() => {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored && JSON.stringify(appState) !== stored) {
-    appState = JSON.parse(stored);
-    renderBracket();
+    try {
+      appState = JSON.parse(stored);
+      renderBracket();
+      updateLeaderboardAndScore(false);
+    } catch(err) {}
   }
 }, 1500);
 
 /**
- * CLIENT VOTE LEDGER WITH ROTATING SALTED HASHES
+ * CLIENT VOTE LEDGER WITH ROTATING SALTED HASHES & USER IDENTITY
  */
-const VOTE_STORAGE_KEY = 'PW26_USER_VOTES_LEDGER';
-
 function getLocalVotesLedger() {
   try {
     return JSON.parse(localStorage.getItem(VOTE_STORAGE_KEY)) || {};
@@ -1020,10 +1412,94 @@ function getLocalVotesLedger() {
   }
 }
 
-function saveLocalVote(boutId, teamIndex, token) {
+function saveLocalVote(boutId, teamIndex, token, predictedTeam) {
   const ledger = getLocalVotesLedger();
-  ledger[boutId] = { teamIndex, token };
+  ledger[boutId] = {
+    teamIndex,
+    token,
+    predictedTeamName: predictedTeam ? predictedTeam.name : '',
+    predictedSeed: predictedTeam ? predictedTeam.seed : null
+  };
   localStorage.setItem(VOTE_STORAGE_KEY, JSON.stringify(ledger));
+  updateLeaderboardAndScore(true);
+}
+
+/**
+ * SCORING ENGINE: 10 POINTS PER CORRECT GUESS
+ * Keyed by clientSecret to ensure the user's score stays tied to them regardless of name changes.
+ */
+function updateLeaderboardAndScore(shouldSave = true) {
+  const playerName = (localStorage.getItem(PLAYER_NAME_KEY) || '').trim().toUpperCase();
+  const ledger = getLocalVotesLedger();
+  let correctCount = 0;
+
+  // Evaluate matches where winner has been decided
+  Object.values(appState.bouts).forEach(bout => {
+    if (bout.winner && ledger[bout.id]) {
+      const predSeed = ledger[bout.id].predictedSeed;
+      if (predSeed === bout.winner.seed) {
+        correctCount++;
+      }
+    }
+  });
+
+  const totalScore = correctCount * 10;
+  document.getElementById('current-player-score').innerText = totalScore;
+
+  if (playerName) {
+    if (!appState.leaderboard) appState.leaderboard = {};
+    appState.leaderboard[clientSecret] = {
+      id: clientSecret,
+      name: playerName,
+      score: totalScore,
+      correctCount: correctCount,
+      lastUpdated: Date.now()
+    };
+
+    if (shouldSave) {
+      saveState(appState, true);
+    }
+  }
+
+  renderLeaderboardTable();
+}
+
+function renderLeaderboardTable() {
+  const tbody = document.getElementById('leaderboard-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const activeUser = (localStorage.getItem(PLAYER_NAME_KEY) || '').trim().toUpperCase();
+  const entries = Object.values(appState.leaderboard || {});
+
+  // Sort descending by score, then by correct picks, then by name
+  entries.sort((a, b) => (b.score - a.score) || (b.correctCount - a.correctCount) || a.name.localeCompare(b.name));
+
+  if (entries.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 25px; color: #888;">NO PREDICTIONS RECORDED YET. CAST YOUR VOTES TO JOIN THE HALL OF FAME!</td></tr>`;
+    return;
+  }
+
+  entries.forEach((player, idx) => {
+    const rank = idx + 1;
+    let rankClass = '';
+    let crown = '';
+    if (rank === 1) { rankClass = 'rank-1'; crown = ' 👑'; }
+    else if (rank === 2) { rankClass = 'rank-2'; crown = ' ★'; }
+    else if (rank === 3) { rankClass = 'rank-3'; crown = ' ♦'; }
+
+    const isCurrent = (player.id === clientSecret || (activeUser && player.name === activeUser));
+    const row = document.createElement('tr');
+    if (isCurrent) row.className = 'current-user-row';
+
+    row.innerHTML = `
+      <td class="rank-col ${rankClass}">#${rank}${crown}</td>
+      <td><strong>${player.name}</strong> ${isCurrent ? '<span style="font-size:0.55rem; color:var(--neon-green);">(YOU)</span>' : ''}</td>
+      <td style="text-align: center; color: var(--neon-cyan); font-family: 'VT323'; font-size: 1.4rem;">${player.correctCount}</td>
+      <td style="text-align: right; color: var(--neon-yellow); font-family: 'VT323'; font-size: 1.6rem; font-weight: bold;">${player.score} PTS</td>
+    `;
+    tbody.appendChild(row);
+  });
 }
 
 /**
@@ -1032,6 +1508,13 @@ function saveLocalVote(boutId, teamIndex, token) {
 let pendingVoteChange = null;
 
 async function handleVoteClick(boutId, teamIndex) {
+  // Ensure player has registered their last name
+  const storedName = localStorage.getItem(PLAYER_NAME_KEY);
+  if (!storedName) {
+    promptPlayerNameModal();
+    return;
+  }
+
   const bout = appState.bouts[boutId];
   if (!bout || bout.locked) return;
 
@@ -1045,13 +1528,15 @@ async function handleVoteClick(boutId, teamIndex) {
     return;
   }
 
-  // If user already voted for the other team, prompt confirmation to change
+  // If user already voted for the opposing team, prompt confirmation to change
   if (existingVote && existingVote.token === expectedToken && existingVote.teamIndex !== teamIndex) {
     const prevTeamName = existingVote.teamIndex === 1 ? (bout.t1?.name || "Team 1") : (bout.t2?.name || "Team 2");
     const newTeamName = teamIndex === 1 ? (bout.t1?.name || "Team 1") : (bout.t2?.name || "Team 2");
-    pendingVoteChange = { boutId, teamIndex, prevTeamIndex: existingVote.teamIndex, expectedToken };
+    const chosenTeam = teamIndex === 1 ? bout.t1 : bout.t2;
+
+    pendingVoteChange = { boutId, teamIndex, prevTeamIndex: existingVote.teamIndex, expectedToken, chosenTeam };
     document.getElementById('confirm-modal-text').innerText = 
-      `You previously voted for "${prevTeamName}". Would you like to switch your vote to "${newTeamName}"?`;
+      `You previously predicted "${prevTeamName}". Would you like to switch your prediction to "${newTeamName}"?`;
     document.getElementById('confirm-modal').style.display = 'flex';
     sfxSwitch();
     return;
@@ -1061,7 +1546,8 @@ async function handleVoteClick(boutId, teamIndex) {
   if (teamIndex === 1) bout.v1++;
   else bout.v2++;
 
-  saveLocalVote(boutId, teamIndex, expectedToken);
+  const chosenTeam = teamIndex === 1 ? bout.t1 : bout.t2;
+  saveLocalVote(boutId, teamIndex, expectedToken, chosenTeam);
   saveState(appState);
   sfxCoin();
   renderBracket();
@@ -1069,7 +1555,7 @@ async function handleVoteClick(boutId, teamIndex) {
 
 document.getElementById('confirm-switch-btn').addEventListener('click', () => {
   if (!pendingVoteChange) return;
-  const { boutId, teamIndex, prevTeamIndex, expectedToken } = pendingVoteChange;
+  const { boutId, teamIndex, prevTeamIndex, expectedToken, chosenTeam } = pendingVoteChange;
   const bout = appState.bouts[boutId];
   if (bout && !bout.locked) {
     if (prevTeamIndex === 1 && bout.v1 > 0) bout.v1--;
@@ -1078,7 +1564,7 @@ document.getElementById('confirm-switch-btn').addEventListener('click', () => {
     if (teamIndex === 1) bout.v1++;
     if (teamIndex === 2) bout.v2++;
 
-    saveLocalVote(boutId, teamIndex, expectedToken);
+    saveLocalVote(boutId, teamIndex, expectedToken, chosenTeam);
     saveState(appState);
     sfxCoin();
     renderBracket();
@@ -1096,14 +1582,12 @@ function closeConfirmModal() {
  */
 async function renderBracket() {
   const ledger = getLocalVotesLedger();
-  const dateEpoch = new Date().toISOString().slice(0, 10);
-  const salt = `PW26_SALT_EPOCH_${dateEpoch}`;
 
   let totalVotesCount = 0;
   let activeBoutsInRoundCount = 0;
   let userVotesInActiveRoundCount = 0;
 
-  // Calculate active stage title
+  // Active stage title
   const stageTitles = {
     1: 'ROUND 1', 2: 'QUARTERFINALS', 3: 'SEMIFINALS', 
     4: 'ROUND 4', 5: 'ROUND 5', 6: 'LOSERS FINAL', 7: 'GRAND FINALS'
@@ -1126,7 +1610,6 @@ async function renderBracket() {
 
   // Render individual bout elements
   for (const bout of Object.values(appState.bouts)) {
-    const elem = document.getElementById(`bout-card-${bout.id}`);
     const isGreyed = (bout.stage > appState.activeStage);
     const isBoutActive = (bout.stage === appState.activeStage && !bout.locked && (bout.t1 || bout.t2));
 
@@ -1135,9 +1618,18 @@ async function renderBracket() {
     }
 
     // Check user vote status with salted hash verification
-    const expectedToken = await sha256(`${salt}::${bout.id}::${clientSecret}`);
+    const expectedToken = await generateBoutSaltedHash(bout.id);
     const hasVoted = ledger[bout.id] && ledger[bout.id].token === expectedToken;
     const votedTeamIndex = hasVoted ? ledger[bout.id].teamIndex : null;
+
+    // Check if user predicted correctly
+    let predictionAwardedHtml = '';
+    if (bout.winner && hasVoted) {
+      const predSeed = ledger[bout.id].predictedSeed;
+      if (predSeed === bout.winner.seed) {
+        predictionAwardedHtml = '<span class="points-awarded-badge">+10 PTS ✔</span>';
+      }
+    }
 
     if (isBoutActive && hasVoted) {
       userVotesInActiveRoundCount++;
@@ -1146,10 +1638,10 @@ async function renderBracket() {
     const html = `
       <div class="bout-card ${bout.locked ? 'locked-bout' : ''} ${isGreyed ? 'greyed-out' : ''}" id="bout-card-${bout.id}">
         <div class="bout-header-bar">
-          <span>BOUT [${bout.id}]</span>
+          <span>BOUT [${bout.id}] ${predictionAwardedHtml}</span>
           <span>${bout.locked ? '<span class="locked-badge">LOCKED</span>' : '<span class="open-badge">OPEN</span>'}</span>
         </div>
-        
+
         <!-- Team 1 Slot -->
         <div class="team-slot ${bout.winner && bout.winner.seed === bout.t1?.seed ? 'winner-slot' : ''}">
           <div class="team-info">
@@ -1345,11 +1837,12 @@ function advanceCurrentStage() {
     const champ = getWinner(appState.bouts['GF']);
     appState.champion = champ;
     lockBouts(['GF']);
-    sfxCoin();
+    sfxFanfare();
     alert(`★ CONGRATULATIONS TO ${champ ? champ.name : 'THE WINNER'}! CHAMPION OF 127 COS PIZZA WARS '26! ★`);
   }
 
   saveState(appState);
+  updateLeaderboardAndScore();
   renderBracket();
   renderAdminControls();
 }
@@ -1410,10 +1903,9 @@ function closeAuthModal() {
 }
 
 async function verifyAdminPassword() {
-  const input = document.getElementById('admin-password-input').value;
-  // Compute SHA-256 of Salt + Input
+  const input = (document.getElementById('admin-password-input').value || '').trim();
   const computedHash = await sha256(AUTH_SALT + input);
-  
+
   if (computedHash === EXPECTED_HASH) {
     closeAuthModal();
     openAdminDrawer();
@@ -1484,41 +1976,118 @@ function toggleAllBouts(lockState) {
 }
 
 function resetTournamentPrompt() {
-  if (confirm("DANGER: RESET ENTIRE TOURNAMENT TREE AND ALL VOTES TO ZERO?")) {
+  if (confirm("DANGER: RESET ENTIRE TOURNAMENT TREE, VOTES, AND HIGH SCORES?")) {
     appState = createDefaultState();
     localStorage.removeItem(VOTE_STORAGE_KEY);
+    localStorage.removeItem(PLAYER_NAME_KEY);
+    document.getElementById('current-player-name').innerText = '---';
+    document.getElementById('current-player-score').innerText = '0';
     saveState(appState);
+    broadcastChannel.postMessage({ type: 'TOURNAMENT_RESET' });
     renderAdminControls();
     renderBracket();
+    renderLeaderboardTable();
     sfxBuzz();
+    promptPlayerNameModal();
   }
 }
 
 /**
- * VIEW SWITCHING
+ * VIEW SWITCHING & FULL BRACKET MODE
  */
 function switchView(viewName) {
-  document.querySelectorAll('.bracket-container').forEach(c => c.classList.remove('active-view'));
+  const winnersView = document.getElementById('winners-view');
+  const losersView = document.getElementById('losers-view');
+  const grandView = document.getElementById('grand-view');
+  const leaderView = document.getElementById('leaderboard-view');
+  const fullToolbar = document.getElementById('full-bracket-toolbar');
+  const dividerTitles = document.querySelectorAll('.section-divider-title');
+
+  // Clear tab active states
   document.querySelectorAll('.tab-btn').forEach(b => {
-    if (!b.classList.contains('admin-trigger-btn')) b.classList.remove('active');
+    if (!b.classList.contains('admin-trigger-btn') && !b.classList.contains('fullscreen-btn')) {
+      b.classList.remove('active');
+    }
   });
 
-  if (viewName === 'winners') {
-    document.getElementById('winners-view').classList.add('active-view');
-    event.target.classList.add('active');
+  // Reset display flags
+  fullToolbar.style.display = 'none';
+  dividerTitles.forEach(el => el.style.display = 'none');
+  winnersView.classList.remove('active-view');
+  losersView.classList.remove('active-view');
+  grandView.classList.remove('active-view');
+  leaderView.classList.remove('active-view');
+
+  if (viewName === 'all') {
+    winnersView.classList.add('active-view');
+    losersView.classList.add('active-view');
+    grandView.classList.add('active-view');
+    fullToolbar.style.display = 'flex';
+    dividerTitles.forEach(el => el.style.display = 'block');
+    document.getElementById('tab-all').classList.add('active');
+  } else if (viewName === 'winners') {
+    winnersView.classList.add('active-view');
+    document.getElementById('tab-winners').classList.add('active');
   } else if (viewName === 'losers') {
-    document.getElementById('losers-view').classList.add('active-view');
-    event.target.classList.add('active');
+    losersView.classList.add('active-view');
+    document.getElementById('tab-losers').classList.add('active');
   } else if (viewName === 'grand') {
-    document.getElementById('grand-view').classList.add('active-view');
-    event.target.classList.add('active');
+    grandView.classList.add('active-view');
+    document.getElementById('tab-grand').classList.add('active');
+  } else if (viewName === 'leaderboard') {
+    leaderView.classList.add('active-view');
+    document.getElementById('tab-leaderboard').classList.add('active');
+    renderLeaderboardTable();
   }
   sfxSwitch();
 }
 
-// Initial draw
+/**
+ * ZOOM & FULLSCREEN ENGINE
+ */
+function setBracketZoom(zoomLevel) {
+  const wrapper = document.getElementById('zoomable-bracket-wrapper');
+  if (wrapper) {
+    wrapper.style.transform = `scale(${zoomLevel})`;
+  }
+  document.querySelectorAll('.zoom-btn').forEach(b => b.classList.remove('active-zoom'));
+  if (event && event.target && event.target.classList.contains('zoom-btn')) {
+    event.target.classList.add('active-zoom');
+  }
+  sfxSwitch();
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  }
+  sfxCoin();
+}
+
+document.addEventListener('fullscreenchange', () => {
+  const fsBtn = document.getElementById('fullscreen-toggle-btn');
+  if (fsBtn) {
+    if (document.fullscreenElement) {
+      fsBtn.innerText = 'EXIT FULLSCREEN ⛶';
+      fsBtn.style.background = 'var(--neon-green)';
+      fsBtn.style.color = '#000';
+    } else {
+      fsBtn.innerText = 'FULLSCREEN ⛶';
+      fsBtn.style.background = '#000';
+      fsBtn.style.color = 'var(--neon-green)';
+    }
+  }
+});
+
+// Initialization
+checkPlayerIdentity();
 renderBracket();
 </script>
 </body>
 </html>
-```
