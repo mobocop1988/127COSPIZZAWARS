@@ -1021,7 +1021,6 @@
       <div>STATUS: <span id="cloud-table-status" style="color:var(--neon-green)">CHECKING SUPABASE...</span></div>
       <div>
         <button class="tab-btn" onclick="fetchCloudLeaderboard()" style="padding:4px 8px; font-size:0.55rem; border-color:var(--neon-cyan);">REFRESH ⟳</button>
-        <button class="tab-btn" onclick="openCloudConfigModal()" style="padding:4px 8px; font-size:0.55rem; border-color:var(--neon-yellow); color:var(--neon-yellow);">CONFIG CLOUD ⚙</button>
       </div>
     </div>
 
@@ -1053,11 +1052,11 @@
   </div>
 </div>
 
-<!-- Cloud Config Modal -->
+<!-- Cloud Config Modal (Accessible exclusively via Admin Panel) -->
 <div id="cloud-modal" class="modal-overlay">
   <div class="modal-box" style="border-color: var(--neon-yellow); max-width: 560px;">
     <h3 class="modal-title" style="color: var(--neon-yellow);">SUPABASE CONFIGURATION</h3>
-    <p class="modal-desc">Configure or update your Supabase backend parameters if the database shows offline.</p>
+    <p class="modal-desc">Configure or update your Supabase backend parameters.</p>
     <input type="text" id="cfg-supabase-url" class="modal-input" style="font-size: 0.65rem; text-transform: none; margin-bottom: 8px;" placeholder="https://xyz.supabase.co">
     <textarea id="cfg-supabase-key" class="modal-input" style="font-size: 0.6rem; height: 80px; text-transform: none; padding: 8px; margin-bottom: 14px;" placeholder="Paste Supabase anon / public key..."></textarea>
     <div class="modal-actions">
@@ -1076,6 +1075,7 @@
     </div>
     <div class="admin-actions-bar">
       <button class="admin-act-btn admin-advance-btn" onclick="advanceCurrentStage()">ADVANCE ACTIVE ROUND >></button>
+      <button class="admin-act-btn" onclick="openCloudConfigModal()" style="border-color: var(--neon-yellow); color: var(--neon-yellow);">CONFIG SUPABASE ☁</button>
       <button class="admin-act-btn" onclick="toggleAllBouts(true)">LOCK ALL BOUTS</button>
       <button class="admin-act-btn" onclick="toggleAllBouts(false)">UNLOCK ALL BOUTS</button>
       <button class="admin-act-btn" onclick="resetTournamentPrompt()" style="border-color: #ff3333; color: #ff3333;">RESET TOURNAMENT</button>
@@ -1170,7 +1170,7 @@ initBackgroundPizzas();
 /**
  * STORAGE KEYS & CONFIGURATION
  */
-const STORAGE_KEY = 'PW26_TOURNAMENT_STATE_V7';
+const STORAGE_KEY = 'PW26_TOURNAMENT_STATE_V9';
 const CLIENT_SECRET_KEY = 'PW26_CLIENT_EPHEMERAL_SECRET';
 const PLAYER_NAME_KEY = 'PW26_PLAYER_LAST_NAME';
 const VOTE_STORAGE_KEY = 'PW26_USER_VOTES_LEDGER';
@@ -1178,7 +1178,7 @@ const SUPABASE_URL_KEY = 'PW26_CFG_SUPABASE_URL';
 const SUPABASE_KEY_KEY = 'PW26_CFG_SUPABASE_ANON_KEY';
 const broadcastChannel = new BroadcastChannel('pizza_wars_sync_bus');
 
-// Default Supabase settings (can be edited live in the app if needed)
+// Default Supabase settings
 const DEFAULT_SUPABASE_URL = "https://tozmfbneiasmnxbftlqw.supabase.co";
 const DEFAULT_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvem1mYm5laWFzbW54YmZ0bHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzNzAzMjUsImV4cCI6MjEwMzk0NjMyNX0.-Z6w_lYZ9kmRtUWLK93XH";
 
@@ -1234,12 +1234,11 @@ async function generateBoutSaltedHash(boutId) {
 }
 
 /**
- * DUAL SUPABASE CLIENT & DIRECT REST API ENGINE
+ * DIRECT REST API ENGINE FOR SUPABASE
  */
 let cloudLeaderboardData = [];
 let isCloudOnline = false;
 
-// Direct PostgREST HTTP query to bypass any CDN SDK load delays
 async function executeSupabaseRest(endpoint, method = 'GET', body = null) {
   const { url, key } = getSupabaseConfig();
   if (!url || !key) return { success: false, error: 'NO_CONFIG' };
@@ -1285,7 +1284,6 @@ async function syncUserScoreToCloud(score, correctCount) {
     updated_at: new Date().toISOString()
   };
 
-  // Attempt upsert via REST (Prefer: resolution=merge-duplicates)
   const { url, key } = getSupabaseConfig();
   try {
     const res = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/pizza_wars_scores`, {
@@ -1315,7 +1313,7 @@ async function fetchCloudLeaderboard() {
   if (statusElem) statusElem.innerText = 'SYNCING...';
 
   const res = await executeSupabaseRest('pizza_wars_scores?select=*&order=score.desc,correct_picks.desc&limit=100');
-  
+
   if (res.success && Array.isArray(res.data)) {
     cloudLeaderboardData = res.data;
     setCloudStatus(true);
@@ -1327,7 +1325,6 @@ async function fetchCloudLeaderboard() {
       statusElem.innerText = `OFFLINE (${res.error || 'Check Config'})`;
       statusElem.style.color = '#ff3333';
     }
-    // Fall back to local leaderboard data
     renderLeaderboardTable();
   }
 }
@@ -1346,7 +1343,7 @@ function setCloudStatus(online, detail = '') {
 }
 
 /**
- * CLOUD CONFIGURATION MODAL (For effortless debugging/updating on GitHub Pages)
+ * CLOUD CONFIGURATION MODAL (Operator Admin Panel Only)
  */
 function openCloudConfigModal() {
   const { url, key } = getSupabaseConfig();
@@ -1373,27 +1370,32 @@ function saveCloudConfig() {
 
 /**
  * INITIAL SEEDED TEAMS
- * #7 Pizza Johns vs #10 Godfather's
- * #15 Pizza Ranch vs #2 Wichita Brewing Co
- * Little Caesar's removed.
+ * #1  Knollas vs #16 Cici's
+ * #8  Picasso's vs #9 Old Chicago
+ * #5  Oak & Pie vs #12 Papa Johns
+ * #4  Ziggy's vs #13 Papa Murphy's
+ * #6  Gambino's vs #11 Dominoes
+ * #3  Casey's vs #14 Pizza Hut
+ * #7  Pizza Johns vs #10 Godfather's
+ * #2  Wichita Brewing Co vs #15 Pizza Ranch
  */
 const SEEDED_TEAMS = [
-  { seed: 1, name: "Knollas" },
-  { seed: 16, name: "Cici's" },
-  { seed: 8, name: "Picasso's" },
-  { seed: 9, name: "Old Chicago" },
-  { seed: 5, name: "Oak & Pie" },
-  { seed: 12, name: "Papa Johns" },
-  { seed: 4, name: "Ziggy's" },
-  { seed: 13, name: "Papa Murphy's" },
-  { seed: 6, name: "Gambino's" },
-  { seed: 11, name: "Dominoes" },
-  { seed: 3, name: "Casey's" },
-  { seed: 14, name: "Pizza Hut" },
-  { seed: 7, name: "Pizza Johns" },
-  { seed: 10, name: "Godfather's" },
-  { seed: 2, name: "Wichita Brewing Co" },
-  { seed: 15, name: "Pizza Ranch" }
+  { seed: 1, name: "Knollas" },             /* [0] */
+  { seed: 16, name: "Cici's" },             /* [1] */
+  { seed: 8, name: "Picasso's" },           /* [2] */
+  { seed: 9, name: "Old Chicago" },         /* [3] */
+  { seed: 5, name: "Oak & Pie" },           /* [4] */
+  { seed: 12, name: "Papa Johns" },         /* [5] */
+  { seed: 4, name: "Ziggy's" },             /* [6] */
+  { seed: 13, name: "Papa Murphy's" },      /* [7] */
+  { seed: 6, name: "Gambino's" },           /* [8] */
+  { seed: 11, name: "Dominoes" },           /* [9] */
+  { seed: 3, name: "Casey's" },             /* [10] */
+  { seed: 14, name: "Pizza Hut" },          /* [11] */
+  { seed: 7, name: "Pizza Johns" },         /* [12] */
+  { seed: 10, name: "Godfather's" },        /* [13] */
+  { seed: 2, name: "Wichita Brewing Co" },  /* [14] */
+  { seed: 15, name: "Pizza Ranch" }         /* [15] */
 ];
 
 /**
@@ -1405,14 +1407,14 @@ function createDefaultState() {
     champion: null,
     leaderboard: {},
     bouts: {
-      'W1': { id: 'W1', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[0], t2: SEEDED_TEAMS, v1: 0, v2: 0, locked: false, winner: null },
-      'W2': { id: 'W2', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS, t2: SEEDED_TEAMS, v1: 0, v2: 0, locked: false, winner: null },
-      'W3': { id: 'W3', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS, t2: SEEDED_TEAMS, v1: 0, v2: 0, locked: false, winner: null },
-      'W4': { id: 'W4', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS, t2: SEEDED_TEAMS, v1: 0, v2: 0, locked: false, winner: null },
-      'W5': { id: 'W5', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS, t2: SEEDED_TEAMS, v1: 0, v2: 0, locked: false, winner: null },
-      'W6': { id: 'W6', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS, t2: SEEDED_TEAMS, v1: 0, v2: 0, locked: false, winner: null },
-      'W7': { id: 'W7', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS, t2: SEEDED_TEAMS, v1: 0, v2: 0, locked: false, winner: null },
-      'W8': { id: 'W8', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS, t2: SEEDED_TEAMS, v1: 0, v2: 0, locked: false, winner: null },
+      'W1': { id: 'W1', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[0], t2: SEEDED_TEAMS[1], v1: 0, v2: 0, locked: false, winner: null },
+      'W2': { id: 'W2', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[2], t2: SEEDED_TEAMS[3], v1: 0, v2: 0, locked: false, winner: null },
+      'W3': { id: 'W3', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[4], t2: SEEDED_TEAMS[5], v1: 0, v2: 0, locked: false, winner: null },
+      'W4': { id: 'W4', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[6], t2: SEEDED_TEAMS[7], v1: 0, v2: 0, locked: false, winner: null },
+      'W5': { id: 'W5', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[8], t2: SEEDED_TEAMS[9], v1: 0, v2: 0, locked: false, winner: null },
+      'W6': { id: 'W6', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[10], t2: SEEDED_TEAMS[11], v1: 0, v2: 0, locked: false, winner: null },
+      'W7': { id: 'W7', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[12], t2: SEEDED_TEAMS[13], v1: 0, v2: 0, locked: false, winner: null },
+      'W8': { id: 'W8', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[14], t2: SEEDED_TEAMS[15], v1: 0, v2: 0, locked: false, winner: null },
 
       'W9':  { id: 'W9', stage: 2, bracket: 'winners', round: 2, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
       'W10': { id: 'W10', stage: 2, bracket: 'winners', round: 2, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
@@ -1455,9 +1457,17 @@ function loadState() {
     try {
       const parsed = JSON.parse(raw);
       if (!parsed.leaderboard) parsed.leaderboard = {};
-      if (parsed.bouts && parsed.bouts['W1'] && parsed.bouts['W1'].t2 && parsed.bouts['W1'].t2.name) {
-        return parsed;
+      
+      // Strict structural validation: ensure all 8 Stage 1 bouts have valid team objects and string names
+      let isValid = true;
+      for (let i = 1; i <= 8; i++) {
+        const bout = parsed.bouts && parsed.bouts['W' + i];
+        if (!bout || !bout.t1 || typeof bout.t1.name !== 'string' || !bout.t2 || typeof bout.t2.name !== 'string') {
+          isValid = false;
+          break;
+        }
       }
+      if (isValid) return parsed;
     } catch (e) {}
   }
   const defaultObj = createDefaultState();
