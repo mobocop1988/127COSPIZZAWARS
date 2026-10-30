@@ -2,11 +2,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="shortcut icon" type="image/x-icon" href="./pizza.ico?">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>127 COS Pizza Wars '26</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<!-- Supabase JS SDK v2 for GitHub Pages Cloud Sync -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --neon-pink: #ff007f;
@@ -138,7 +139,7 @@
   .scoreboard {
     display: flex;
     justify-content: center;
-    gap: 18px;
+    gap: 16px;
     margin: 10px auto 18px auto;
     font-size: 0.72rem;
     color: var(--neon-cyan);
@@ -164,11 +165,9 @@
   .score-box.pilot-badge {
     border-color: var(--neon-yellow);
     cursor: pointer;
-    transition: all 0.15s ease;
   }
   .score-box.pilot-badge:hover {
     box-shadow: 0 0 14px var(--neon-yellow);
-    background: rgba(255, 230, 0, 0.15);
   }
 
   .score-box.points-box {
@@ -582,7 +581,7 @@
 
   /* High Score Leaderboard Styling */
   .leaderboard-panel {
-    max-width: 820px;
+    max-width: 860px;
     margin: 15px auto 40px auto;
     background: rgba(18, 10, 38, 0.95);
     border: 4px solid var(--neon-yellow);
@@ -602,8 +601,15 @@
     text-align: center;
     font-size: 0.65rem;
     color: var(--neon-cyan);
-    margin-bottom: 22px;
+    margin-bottom: 12px;
     letter-spacing: 1px;
+  }
+
+  .cloud-status-text {
+    text-align: center;
+    font-size: 0.58rem;
+    color: var(--neon-green);
+    margin-bottom: 20px;
   }
 
   .leader-table {
@@ -646,7 +652,7 @@
   .rank-2 { color: #00f3ff; text-shadow: 0 0 8px #00f3ff; }
   .rank-3 { color: #ff007f; text-shadow: 0 0 8px #ff007f; }
 
-  /* Generic Modals */
+  /* Modals */
   .modal-overlay {
     display: none;
     position: fixed;
@@ -867,7 +873,7 @@
   </div>
 
   <div class="scoreboard">
-    <div class="score-box pilot-badge" onclick="promptPlayerNameModal()" title="Click to Change Pilot Name">
+    <div class="score-box pilot-badge" onclick="promptPlayerNameModal()" title="Click to Rename Pilot (Retains Hash & Vote History)">
       PLAYER: <span id="current-player-name" class="val">---</span>
     </div>
     <div class="score-box points-box">
@@ -883,7 +889,7 @@
       TOTAL BALLOTS: <span id="total-ballots" class="val">0</span>
     </div>
     <div class="score-box">
-      <span class="sync-active-badge">● LIVE SYNC ACTIVE</span>
+      <span class="sync-active-badge">● CLOUD SYNC ACTIVE</span>
     </div>
   </div>
 
@@ -999,6 +1005,7 @@
   <div class="leaderboard-panel">
     <h2 class="leader-title">★ TOP PIZZA PREDICTORS // HALL OF FAME ★</h2>
     <p class="leader-subtitle">10 PTS AWARDED FOR EACH CORRECT MATCHUP PREDICTION</p>
+    <p class="cloud-status-text" id="supabase-status-indicator">⚡ CONNECTING TO SUPABASE CLOUD DATABASE...</p>
 
     <table class="leader-table">
       <thead>
@@ -1020,11 +1027,10 @@
 <div id="player-modal" class="modal-overlay">
   <div class="modal-box" style="border-color: var(--neon-yellow); box-shadow: 0 0 25px var(--neon-yellow);">
     <h3 class="modal-title">INSERT COIN // IDENTIFY PILOT</h3>
-    <p class="modal-desc">Enter your <strong>LAST NAME</strong> to register your bracket predictions and compete for the High Score Leaderboard!</p>
+    <p class="modal-desc">Enter your <strong>LAST NAME</strong> to register your bracket predictions and compete on the global High Score Leaderboard!</p>
     <input type="text" id="player-name-input" class="modal-input" placeholder="ENTER LAST NAME..." maxlength="20" autocomplete="off">
     <div class="modal-actions">
-      <button class="tab-btn" onclick="savePlayerName()" style="border-color: var(--neon-green); color: var(--neon-green);">CONFIRM PILOT</button>
-      <button class="tab-btn" onclick="closePlayerModal()">CANCEL</button>
+      <button class="tab-btn" onclick="savePlayerName()" style="border-color: var(--neon-green); color: var(--neon-green);">START GAME</button>
     </div>
   </div>
 </div>
@@ -1072,7 +1078,7 @@
 </div>
 
 <footer>
-  127 COS PIZZA WARS '26 • ALL VOTES STORED VIA LOCAL ROTATING SALTED HASH • FULLSCREEN ARCADE MODE ENABLED
+  127 COS PIZZA WARS '26 • SUPABASE CLOUD HIGH SCORE SYNC • ROTATING SALTED HASH TOKENS ENABLED
 </footer>
 
 <script>
@@ -1129,6 +1135,21 @@ function initBackgroundPizzas() {
 initBackgroundPizzas();
 
 /**
+ * SUPABASE CLOUD DATABASE CONFIGURATION
+ */
+const SUPABASE_URL = "https://tozmfbneiasmnxbftlqw.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvem1mYm5laWFzbW54YmZ0bHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzNzAzMjUsImV4cCI6MjEwMzk0NjMyNX0.-Z6w_lYZ9kmRtUWLK93XH";
+
+let supabaseClient = null;
+if (window.supabase && typeof window.supabase.createClient === 'function') {
+  try {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } catch (err) {
+    console.warn("Supabase initialization error:", err);
+  }
+}
+
+/**
  * STORAGE KEYS & BROADCAST SYNCHRONIZATION
  */
 const STORAGE_KEY = 'PW26_TOURNAMENT_STATE_V7';
@@ -1137,7 +1158,7 @@ const PLAYER_NAME_KEY = 'PW26_PLAYER_LAST_NAME';
 const VOTE_STORAGE_KEY = 'PW26_USER_VOTES_LEDGER';
 const broadcastChannel = new BroadcastChannel('pizza_wars_sync_bus');
 
-// Ephemeral client secret uniquely identifying this device/browser
+// Ephemeral client device secret (stable per device/browser profile)
 let clientSecret = localStorage.getItem(CLIENT_SECRET_KEY);
 if (!clientSecret) {
   try {
@@ -1157,7 +1178,6 @@ async function sha256(str) {
       return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
   } catch(e) {}
-  // Deterministic fallback
   let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
   for (let i = 0; i < str.length; i++) {
     const ch = str.charCodeAt(i);
@@ -1169,11 +1189,12 @@ async function sha256(str) {
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16).padStart(16, '0');
 }
 
-/**
- * Generate salted verification hash for a given bout.
- * Tied directly to the client secret & daily epoch so that changing player names
- * does NOT allow double voting or reset voting credits.
- */
+// Generate persistent user hash linking client secret for cloud leaderboard
+async function getUserIdentityHash() {
+  return await sha256(`PW26_PILOT_USER_SALT::${clientSecret}`);
+}
+
+// Generate rotating daily salted verification hash for a given bout
 async function generateBoutSaltedHash(boutId) {
   const dateEpoch = new Date().toISOString().slice(0, 10);
   const salt = `PW26_SALT_EPOCH_${dateEpoch}`;
@@ -1200,16 +1221,7 @@ function promptPlayerNameModal() {
   setTimeout(() => document.getElementById('player-name-input').focus(), 50);
 }
 
-function closePlayerModal() {
-  const stored = localStorage.getItem(PLAYER_NAME_KEY);
-  if (!stored) {
-    alert("A PILOT LAST NAME IS REQUIRED TO PARTICIPATE.");
-    return;
-  }
-  document.getElementById('player-modal').style.display = 'none';
-}
-
-function savePlayerName() {
+async function savePlayerName() {
   const raw = document.getElementById('player-name-input').value.trim();
   if (!raw) {
     sfxBuzz();
@@ -1217,40 +1229,28 @@ function savePlayerName() {
     return;
   }
   const cleanName = raw.toUpperCase().replace(/[^A-Z0-9\-\'\s]/g, '');
-  const oldName = (localStorage.getItem(PLAYER_NAME_KEY) || '').trim().toUpperCase();
-
   localStorage.setItem(PLAYER_NAME_KEY, cleanName);
   document.getElementById('current-player-name').innerText = cleanName;
   document.getElementById('player-modal').style.display = 'none';
-
-  // If old name existed in leaderboard under raw name key, migrate it
-  if (appState.leaderboard) {
-    if (oldName && appState.leaderboard[oldName]) {
-      delete appState.leaderboard[oldName];
-    }
-  }
-
   sfxFanfare();
-  updateLeaderboardAndScore();
+  await updateLeaderboardAndScore();
   renderBracket();
 }
 
 document.getElementById('player-name-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') savePlayerName();
-  if (e.key === 'Escape') closePlayerModal();
 });
 
 /**
  * INITIAL SEEDED TEAMS
- * 16 competitors:
- * #1 Knollas, #16 Cici's
- * #8 Picasso's, #9 Old Chicago
- * #5 Oak & Pie, #12 Papa Johns
- * #4 Ziggy's, #13 Papa Murphy's
- * #6 Gambino's, #11 Dominoes
- * #3 Casey's, #14 Pizza Hut
- * #7 Pizza Johns, #10 Godfather's
- * #2 Wichita Brewing Co, #15 Pizza Ranch
+ * 1 Knollas vs 16 Cici's
+ * 8 Picasso's vs 9 Old Chicago
+ * 5 Oak & Pie vs 12 Papa Johns
+ * 4 Ziggy's vs 13 Papa Murphy's
+ * 6 Gambino's vs 11 Dominoes
+ * 3 Casey's vs 14 Pizza Hut
+ * 7 Pizza Johns vs 10 Godfather's
+ * 2 Wichita Brewing Co vs 15 Pizza Ranch
  */
 const SEEDED_TEAMS = [
   { seed: 1, name: "Knollas" },
@@ -1278,16 +1278,16 @@ function createDefaultState() {
   return {
     activeStage: 1,
     champion: null,
-    leaderboard: {}, // Keyed by clientSecret: { id, name, score, correctCount, lastUpdated }
+    leaderboard: {},
     bouts: {
-      // Winners Round 1 (All 16 teams correctly mapped, starting at 0 votes)
-      'W1': { id: 'W1', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[0],  t2: SEEDED_TEAMS[1],  v1: 0, v2: 0, locked: false, winner: null },
-      'W2': { id: 'W2', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[2],  t2: SEEDED_TEAMS[3],  v1: 0, v2: 0, locked: false, winner: null },
-      'W3': { id: 'W3', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[4],  t2: SEEDED_TEAMS[5],  v1: 0, v2: 0, locked: false, winner: null },
-      'W4': { id: 'W4', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[6],  t2: SEEDED_TEAMS[7],  v1: 0, v2: 0, locked: false, winner: null },
-      'W5': { id: 'W5', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[8],  t2: SEEDED_TEAMS[9],  v1: 0, v2: 0, locked: false, winner: null },
-      'W6': { id: 'W6', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[10], t2: SEEDED_TEAMS[11], v1: 0, v2: 0, locked: false, winner: null },
-      'W7': { id: 'W7', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[12], t2: SEEDED_TEAMS[13], v1: 0, v2: 0, locked: false, winner: null },
+      // Winners Round 1 (0 initial votes)
+      'W1': { id: 'W1', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[0], t2: SEEDED_TEAMS, v1: 0, v2: 0, locked: false, winner: null },
+      'W2': { id: 'W2', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS, t2: SEEDED_TEAMS, v1: 0, v2: 0, locked: false, winner: null },
+      'W3': { id: 'W3', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS, t2: SEEDED_TEAMS, v1: 0, v2: 0, locked: false, winner: null },
+      'W4': { id: 'W4', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS, t2: SEEDED_TEAMS, v1: 0, v2: 0, locked: false, winner: null },
+      'W5': { id: 'W5', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS, t2: SEEDED_TEAMS, v1: 0, v2: 0, locked: false, winner: null },
+      'W6': { id: 'W6', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS, t2: SEEDED_TEAMS, v1: 0, v2: 0, locked: false, winner: null },
+      'W7': { id: 'W7', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS, t2: SEEDED_TEAMS[13], v1: 0, v2: 0, locked: false, winner: null },
       'W8': { id: 'W8', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[14], t2: SEEDED_TEAMS[15], v1: 0, v2: 0, locked: false, winner: null },
 
       // Winners Round 2
@@ -1340,10 +1340,7 @@ function loadState() {
     try {
       const parsed = JSON.parse(raw);
       if (!parsed.leaderboard) parsed.leaderboard = {};
-      // Ensure seeded teams are sound
-      if (parsed.bouts && parsed.bouts['W1'] && parsed.bouts['W1'].t2 && parsed.bouts['W1'].t2.name === "Cici's") {
-        return parsed;
-      }
+      return parsed;
     } catch (e) {}
   }
   const defaultObj = createDefaultState();
@@ -1358,34 +1355,23 @@ function saveState(state, broadcast = true) {
   }
 }
 
-// Live Synchronizer across tabs & windows
+// Live Synchronizer across tabs
 broadcastChannel.onmessage = (event) => {
   if (event.data && event.data.type === 'STATE_UPDATE') {
     appState = event.data.state;
     renderBracket();
-    updateLeaderboardAndScore(false);
+    updateLeaderboardAndScore();
     if (document.getElementById('admin-overlay').style.display === 'flex') {
       renderAdminControls();
     }
-  } else if (event.data && event.data.type === 'TOURNAMENT_RESET') {
-    appState = createDefaultState();
-    localStorage.removeItem(VOTE_STORAGE_KEY);
-    localStorage.removeItem(PLAYER_NAME_KEY);
-    document.getElementById('current-player-name').innerText = '---';
-    document.getElementById('current-player-score').innerText = '0';
-    renderBracket();
-    renderLeaderboardTable();
-    promptPlayerNameModal();
   }
 };
 
 window.addEventListener('storage', (e) => {
   if (e.key === STORAGE_KEY && e.newValue) {
-    try {
-      appState = JSON.parse(e.newValue);
-      renderBracket();
-      updateLeaderboardAndScore(false);
-    } catch(err) {}
+    appState = JSON.parse(e.newValue);
+    renderBracket();
+    updateLeaderboardAndScore();
   }
 });
 
@@ -1393,11 +1379,9 @@ window.addEventListener('storage', (e) => {
 setInterval(() => {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored && JSON.stringify(appState) !== stored) {
-    try {
-      appState = JSON.parse(stored);
-      renderBracket();
-      updateLeaderboardAndScore(false);
-    } catch(err) {}
+    appState = JSON.parse(stored);
+    renderBracket();
+    updateLeaderboardAndScore();
   }
 }, 1500);
 
@@ -1421,19 +1405,86 @@ function saveLocalVote(boutId, teamIndex, token, predictedTeam) {
     predictedSeed: predictedTeam ? predictedTeam.seed : null
   };
   localStorage.setItem(VOTE_STORAGE_KEY, JSON.stringify(ledger));
-  updateLeaderboardAndScore(true);
+  updateLeaderboardAndScore();
+}
+
+/**
+ * SUPABASE CLOUD HIGH SCORE SYNC & REALTIME SUBSCRIPTION
+ */
+async function syncScoreToSupabase(userHash, playerName, score, correctCount) {
+  if (!supabaseClient) return;
+  const dateEpoch = new Date().toISOString().slice(0, 10);
+  try {
+    const { error } = await supabaseClient
+      .from('pizza_wars_scores')
+      .upsert({
+        user_hash: userHash,
+        player_name: playerName,
+        score: score,
+        correct_picks: correctCount,
+        last_active_date: dateEpoch,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_hash' });
+
+    if (error) {
+      console.warn("Supabase upsert warning:", error.message);
+    }
+  } catch (err) {
+    console.warn("Supabase network error:", err);
+  }
+}
+
+async function fetchLeaderboardFromSupabase() {
+  const indicator = document.getElementById('supabase-status-indicator');
+  if (!supabaseClient) {
+    if (indicator) indicator.innerText = "LOCAL MODE: SUPABASE CLIENT OFFLINE (USING LOCAL STORAGE)";
+    renderLeaderboardTable();
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('pizza_wars_scores')
+      .select('user_hash, player_name, score, correct_picks, updated_at')
+      .order('score', { ascending: false })
+      .order('correct_picks', { ascending: false });
+
+    if (!error && Array.isArray(data)) {
+      if (indicator) indicator.innerText = "⚡ SUPABASE CLOUD SYNC: CONNECTED (LIVE LEADERBOARD)";
+      renderLeaderboardTable(data);
+    } else {
+      if (indicator) indicator.innerText = "TABLE NOT DETECTED YET. RUN SQL SETUP IN SUPABASE.";
+      renderLeaderboardTable();
+    }
+  } catch (err) {
+    if (indicator) indicator.innerText = "NETWORK OFFLINE (DISPLAYING LOCAL LEADERBOARD)";
+    renderLeaderboardTable();
+  }
+}
+
+// Subscribe to live leaderboard changes on Supabase
+if (supabaseClient) {
+  try {
+    supabaseClient
+      .channel('pizza_wars_realtime_scores')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pizza_wars_scores' }, () => {
+        fetchLeaderboardFromSupabase();
+      })
+      .subscribe();
+  } catch (err) {}
 }
 
 /**
  * SCORING ENGINE: 10 POINTS PER CORRECT GUESS
- * Keyed by clientSecret to ensure the user's score stays tied to them regardless of name changes.
  */
-function updateLeaderboardAndScore(shouldSave = true) {
+async function updateLeaderboardAndScore() {
   const playerName = (localStorage.getItem(PLAYER_NAME_KEY) || '').trim().toUpperCase();
+  if (!playerName) return;
+
   const ledger = getLocalVotesLedger();
   let correctCount = 0;
 
-  // Evaluate matches where winner has been decided
+  // Evaluate matches where winner has been determined
   Object.values(appState.bouts).forEach(bout => {
     if (bout.winner && ledger[bout.id]) {
       const predSeed = ledger[bout.id].predictedSeed;
@@ -1446,31 +1497,44 @@ function updateLeaderboardAndScore(shouldSave = true) {
   const totalScore = correctCount * 10;
   document.getElementById('current-player-score').innerText = totalScore;
 
-  if (playerName) {
-    if (!appState.leaderboard) appState.leaderboard = {};
-    appState.leaderboard[clientSecret] = {
-      id: clientSecret,
-      name: playerName,
-      score: totalScore,
-      correctCount: correctCount,
-      lastUpdated: Date.now()
-    };
+  // Compute user persistent identity hash
+  const userHash = await getUserIdentityHash();
 
-    if (shouldSave) {
-      saveState(appState, true);
-    }
-  }
+  // Update local leaderboard map
+  if (!appState.leaderboard) appState.leaderboard = {};
+  appState.leaderboard[userHash] = {
+    userHash: userHash,
+    name: playerName,
+    score: totalScore,
+    correctCount: correctCount,
+    lastUpdated: Date.now()
+  };
 
-  renderLeaderboardTable();
+  saveState(appState, true);
+
+  // Sync to Supabase table
+  await syncScoreToSupabase(userHash, playerName, totalScore, correctCount);
+  await fetchLeaderboardFromSupabase();
 }
 
-function renderLeaderboardTable() {
+function renderLeaderboardTable(cloudData = null) {
   const tbody = document.getElementById('leaderboard-tbody');
   if (!tbody) return;
   tbody.innerHTML = '';
 
   const activeUser = (localStorage.getItem(PLAYER_NAME_KEY) || '').trim().toUpperCase();
-  const entries = Object.values(appState.leaderboard || {});
+
+  let entries = [];
+  if (cloudData && Array.isArray(cloudData) && cloudData.length > 0) {
+    entries = cloudData.map(row => ({
+      userHash: row.user_hash,
+      name: row.player_name,
+      score: row.score || 0,
+      correctCount: row.correct_picks || 0
+    }));
+  } else {
+    entries = Object.values(appState.leaderboard || {});
+  }
 
   // Sort descending by score, then by correct picks, then by name
   entries.sort((a, b) => (b.score - a.score) || (b.correctCount - a.correctCount) || a.name.localeCompare(b.name));
@@ -1488,7 +1552,7 @@ function renderLeaderboardTable() {
     else if (rank === 2) { rankClass = 'rank-2'; crown = ' ★'; }
     else if (rank === 3) { rankClass = 'rank-3'; crown = ' ♦'; }
 
-    const isCurrent = (player.id === clientSecret || (activeUser && player.name === activeUser));
+    const isCurrent = (player.name === activeUser);
     const row = document.createElement('tr');
     if (isCurrent) row.className = 'current-user-row';
 
@@ -1508,7 +1572,6 @@ function renderLeaderboardTable() {
 let pendingVoteChange = null;
 
 async function handleVoteClick(boutId, teamIndex) {
-  // Ensure player has registered their last name
   const storedName = localStorage.getItem(PLAYER_NAME_KEY);
   if (!storedName) {
     promptPlayerNameModal();
@@ -1587,7 +1650,6 @@ async function renderBracket() {
   let activeBoutsInRoundCount = 0;
   let userVotesInActiveRoundCount = 0;
 
-  // Active stage title
   const stageTitles = {
     1: 'ROUND 1', 2: 'QUARTERFINALS', 3: 'SEMIFINALS', 
     4: 'ROUND 4', 5: 'ROUND 5', 6: 'LOSERS FINAL', 7: 'GRAND FINALS'
@@ -1715,7 +1777,6 @@ function advanceCurrentStage() {
   sfxCoin();
 
   if (stage === 1) {
-    // Winners Round 1 -> Winners Round 2 (Quarterfinals) & Losers Round 1
     const w1_w = getWinner(appState.bouts['W1']);
     const w1_l = getLoser(appState.bouts['W1']);
     const w2_w = getWinner(appState.bouts['W2']);
@@ -1750,7 +1811,6 @@ function advanceCurrentStage() {
     appState.activeStage = 2;
 
   } else if (stage === 2) {
-    // Winners Semifinals (W13, W14) & Losers Round 2 (L5, L6, L7, L8)
     const w9_w = getWinner(appState.bouts['W9']);
     const w9_l = getLoser(appState.bouts['W9']);
     const w10_w = getWinner(appState.bouts['W10']);
@@ -1778,7 +1838,6 @@ function advanceCurrentStage() {
     appState.activeStage = 3;
 
   } else if (stage === 3) {
-    // Winners Final (W15) & Losers Round 3 (L9, L10)
     const w13_w = getWinner(appState.bouts['W13']);
     const w14_w = getWinner(appState.bouts['W14']);
 
@@ -1796,7 +1855,6 @@ function advanceCurrentStage() {
     appState.activeStage = 4;
 
   } else if (stage === 4) {
-    // Losers Round 4 (L11, L12)
     const w13_l = getLoser(appState.bouts['W13']);
     const w14_l = getLoser(appState.bouts['W14']);
     const l9_w = getWinner(appState.bouts['L9']);
@@ -1810,7 +1868,6 @@ function advanceCurrentStage() {
     appState.activeStage = 5;
 
   } else if (stage === 5) {
-    // Losers Final (L13)
     const l11_w = getWinner(appState.bouts['L11']);
     const l12_w = getWinner(appState.bouts['L12']);
     const w15_l = getLoser(appState.bouts['W15']);
@@ -1822,7 +1879,6 @@ function advanceCurrentStage() {
     appState.activeStage = 6;
 
   } else if (stage === 6) {
-    // Grand Finals (GF)
     const w15_w = getWinner(appState.bouts['W15']);
     const l13_w = getWinner(appState.bouts['L13']);
 
@@ -1833,7 +1889,6 @@ function advanceCurrentStage() {
     appState.activeStage = 7;
 
   } else if (stage === 7) {
-    // Conclude Tournament
     const champ = getWinner(appState.bouts['GF']);
     appState.champion = champ;
     lockBouts(['GF']);
@@ -1980,15 +2035,16 @@ function resetTournamentPrompt() {
     appState = createDefaultState();
     localStorage.removeItem(VOTE_STORAGE_KEY);
     localStorage.removeItem(PLAYER_NAME_KEY);
+    saveState(appState);
+
     document.getElementById('current-player-name').innerText = '---';
     document.getElementById('current-player-score').innerText = '0';
-    saveState(appState);
-    broadcastChannel.postMessage({ type: 'TOURNAMENT_RESET' });
+
+    updateLeaderboardAndScore();
     renderAdminControls();
     renderBracket();
-    renderLeaderboardTable();
     sfxBuzz();
-    promptPlayerNameModal();
+    setTimeout(() => promptPlayerNameModal(), 400);
   }
 }
 
@@ -2003,14 +2059,12 @@ function switchView(viewName) {
   const fullToolbar = document.getElementById('full-bracket-toolbar');
   const dividerTitles = document.querySelectorAll('.section-divider-title');
 
-  // Clear tab active states
   document.querySelectorAll('.tab-btn').forEach(b => {
     if (!b.classList.contains('admin-trigger-btn') && !b.classList.contains('fullscreen-btn')) {
       b.classList.remove('active');
     }
   });
 
-  // Reset display flags
   fullToolbar.style.display = 'none';
   dividerTitles.forEach(el => el.style.display = 'none');
   winnersView.classList.remove('active-view');
@@ -2037,7 +2091,7 @@ function switchView(viewName) {
   } else if (viewName === 'leaderboard') {
     leaderView.classList.add('active-view');
     document.getElementById('tab-leaderboard').classList.add('active');
-    renderLeaderboardTable();
+    fetchLeaderboardFromSupabase();
   }
   sfxSwitch();
 }
@@ -2085,9 +2139,10 @@ document.addEventListener('fullscreenchange', () => {
   }
 });
 
-// Initialization
+// Initialization sequence
 checkPlayerIdentity();
 renderBracket();
+fetchLeaderboardFromSupabase();
 </script>
 </body>
 </html>
