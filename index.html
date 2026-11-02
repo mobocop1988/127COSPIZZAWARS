@@ -1334,10 +1334,10 @@ function setCloudStatus(online, detail = '') {
   if (!badge) return;
   if (online) {
     badge.className = 'cloud-status-badge cloud-online';
-    badge.innerHTML = '● ONLINE';
+    badge.innerHTML = '● SUPABASE ONLINE';
   } else {
     badge.className = 'cloud-status-badge cloud-offline';
-    badge.innerHTML = `▲ OFFLINE ${detail ? '(' + detail.slice(0, 10) + ')' : ''}`;
+    badge.innerHTML = `▲ DB OFFLINE ${detail ? '(' + detail.slice(0, 10) + ')' : ''}`;
   }
 }
 
