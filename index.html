@@ -1334,7 +1334,7 @@ function setCloudStatus(online, detail = '') {
   if (!badge) return;
   if (online) {
     badge.className = 'cloud-status-badge cloud-online';
-    badge.innerHTML = '● SUPABASE ONLINE';
+    badge.innerHTML = '● ONLINE';
   } else {
     badge.className = 'cloud-status-badge cloud-offline';
     badge.innerHTML = `▲ DB OFFLINE ${detail ? '(' + detail.slice(0, 10) + ')' : ''}`;
@@ -2040,7 +2040,7 @@ function unlockBouts(ids) {
  * CRYPTOGRAPHIC ONE-WAY PASSWORD AUTHENTICATION
  */
 const AUTH_SALT = "COS127_PIZZA_WARS_SALT_2026";
-const EXPECTED_HASH = "1c747c1602a233a5df1aa7c44b4d43ba95a0e1a5d6cd2faefaaaf3d78dd0d44e";
+const EXPECTED_HASH = "f58b9b3d0fef5ea0c90bc816b8f55b2a2e7a4bdd7fdf91f5ef10f0efef24913d";
 
 function requestAdminAuth() {
   document.getElementById('admin-password-input').value = '';
