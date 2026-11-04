@@ -1,4013 +1,2556 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
   <link rel="shortcut icon" type="image/x-icon" href="pizza.ico">
-
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>127 COS Pizza Wars '26</title>
-
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
-
 <!-- Supabase SDK via CDN with fallbacks -->
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
-
   :root {
-
     --neon-pink: #ff007f;
-
     --neon-cyan: #00f3ff;
-
     --neon-yellow: #ffe600;
-
     --neon-green: #39ff14;
-
     --neon-purple: #b026ff;
-
     --arcade-dark: #0a0518;
-
     --arcade-panel: rgba(18, 10, 38, 0.94);
-
     --arcade-border: #ff007f;
-
     --grid-line: rgba(0, 243, 255, 0.15);
-
     --scanline-color: rgba(18, 16, 16, 0.35);
-
   }
 
   * {
-
     box-sizing: border-box;
-
     margin: 0;
-
     padding: 0;
-
     user-select: none;
-
   }
 
   body {
-
     background-color: var(--arcade-dark);
-
     color: #fff;
-
     font-family: 'Press Start 2P', monospace;
-
     overflow-x: hidden;
-
     min-height: 100vh;
-
     position: relative;
-
   }
 
   /* Scanline CRT overlay */
-
   .crt-overlay {
-
     position: fixed;
-
     top: 0;
-
     left: 0;
-
     width: 100vw;
-
     height: 100vh;
-
     background: linear-gradient(
-
       rgba(18, 16, 16, 0) 50%, 
-
       var(--scanline-color) 50%
-
     ), linear-gradient(
-
       90deg,
-
       rgba(255, 0, 0, 0.04),
-
       rgba(0, 255, 0, 0.02),
-
       rgba(0, 0, 255, 0.04)
-
     );
-
     background-size: 100% 4px, 6px 100%;
-
     pointer-events: none;
-
     z-index: 999;
-
   }
 
   /* Retro Perspective Grid */
-
   .grid-bg {
-
     position: fixed;
-
     top: 0;
-
     left: 0;
-
     width: 100vw;
-
     height: 100vh;
-
     background: 
-
       linear-gradient(to bottom, rgba(10,5,24,0.85) 0%, rgba(20,5,40,0.95) 100%),
-
       repeating-linear-gradient(0deg, transparent, transparent 39px, var(--grid-line) 40px),
-
       repeating-linear-gradient(90deg, transparent, transparent 39px, var(--grid-line) 40px);
-
     z-index: -2;
-
   }
 
   /* Floating Pizza Elements */
-
   #pizza-canvas-container {
-
     position: fixed;
-
     top: 0;
-
     left: 0;
-
     width: 100vw;
-
     height: 100vh;
-
     overflow: hidden;
-
     pointer-events: none;
-
     z-index: -1;
-
   }
 
   .floating-pizza {
-
     position: absolute;
-
     width: 32px;
-
     height: 32px;
-
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="%23e59b24" d="M1 2h14v2l-1 2-6 10-6-10-1-2z"/><path fill="%23d32f2f" d="M2 3h12v1l-1 2-5 8-5-8-1-2z"/><path fill="%23ffd54f" d="M3 4h10l-1 2-4 6-4-6-1-2z"/><circle cx="8" cy="6" r="1.2" fill="%23b71c1c"/><circle cx="5" cy="5" r="1.1" fill="%23b71c1c"/><circle cx="11" cy="5.5" r="1.1" fill="%23b71c1c"/><circle cx="7" cy="9" r="1.1" fill="%23b71c1c"/><circle cx="9" cy="8" r="0.9" fill="%23388e3c"/></svg>');
-
     background-size: contain;
-
     background-repeat: no-repeat;
-
     opacity: 0.35;
-
     filter: drop-shadow(0 0 6px var(--neon-pink));
-
     animation: floatUp linear infinite;
-
   }
 
   @keyframes floatUp {
-
     0% {
-
       transform: translateY(105vh) rotate(0deg);
-
       opacity: 0;
-
     }
-
     10% { opacity: 0.45; }
-
     90% { opacity: 0.45; }
-
     100% {
-
       transform: translateY(-10vh) rotate(360deg);
-
       opacity: 0;
-
     }
-
   }
 
   /* Header & Scoreboard */
-
   header {
-
     text-align: center;
-
     padding: 24px 10px 10px 10px;
-
     position: relative;
-
     z-index: 10;
-
   }
 
   .arcade-banner {
-
     display: inline-block;
-
     padding: 12px 28px;
-
     background: #000;
-
     border: 4px solid var(--neon-pink);
-
     box-shadow: 0 0 15px var(--neon-pink), inset 0 0 12px var(--neon-pink);
-
     transform: perspective(400px) rotateX(8deg);
-
     margin-bottom: 12px;
-
   }
 
   .title-main {
-
     font-size: 2.2rem;
-
     color: var(--neon-yellow);
-
     text-shadow: 3px 3px 0px var(--neon-pink), 0 0 12px var(--neon-yellow);
-
     letter-spacing: 3px;
-
     text-transform: uppercase;
-
   }
 
   .scoreboard {
-
     display: flex;
-
     justify-content: center;
-
     gap: 16px;
-
     margin: 10px auto 18px auto;
-
     font-size: 0.7rem;
-
     color: var(--neon-cyan);
-
     text-shadow: 0 0 6px var(--neon-cyan);
-
     flex-wrap: wrap;
-
   }
 
   .score-box {
-
     background: rgba(0, 0, 0, 0.85);
-
     border: 2px solid var(--neon-cyan);
-
     padding: 6px 14px;
-
     box-shadow: 0 0 8px rgba(0,243,255,0.4);
-
     display: flex;
-
     align-items: center;
-
     gap: 8px;
-
   }
 
   .score-box span.val {
-
     color: var(--neon-pink);
-
     font-weight: bold;
-
   }
 
   .score-box.pilot-badge {
-
     border-color: var(--neon-yellow);
-
     cursor: pointer;
-
   }
 
   .score-box.pilot-badge:hover {
-
     box-shadow: 0 0 14px var(--neon-yellow);
-
   }
 
   .score-box.points-box {
-
     border-color: var(--neon-green);
-
   }
 
   .score-box.points-box span.val {
-
     color: var(--neon-green);
-
   }
 
   .cloud-status-badge {
-
     display: inline-flex;
-
     align-items: center;
-
     gap: 6px;
-
     font-size: 0.65rem;
-
   }
 
   .cloud-online {
-
     color: var(--neon-green);
-
     text-shadow: 0 0 8px var(--neon-green);
-
     animation: blinkGlow 1.8s infinite;
-
   }
 
   .cloud-offline {
-
     color: #ff3333;
-
     text-shadow: 0 0 8px #ff3333;
-
   }
 
   @keyframes blinkGlow {
-
     0%, 100% { opacity: 1; }
-
     50% { opacity: 0.45; }
-
   }
 
   /* Navigation Tabs */
-
   .nav-tabs {
-
     display: flex;
-
     justify-content: center;
-
     gap: 12px;
-
     margin-bottom: 20px;
-
     flex-wrap: wrap;
-
     align-items: center;
-
   }
 
   .tab-btn {
-
     background: #000;
-
     color: #fff;
-
     border: 2px solid var(--neon-cyan);
-
     padding: 10px 18px;
-
     font-family: 'Press Start 2P', monospace;
-
     font-size: 0.75rem;
-
     cursor: pointer;
-
     box-shadow: 0 0 8px rgba(0,243,255,0.3);
-
     transition: all 0.15s ease;
-
   }
 
   .tab-btn:hover {
-
     background: var(--neon-cyan);
-
     color: #000;
-
     box-shadow: 0 0 16px var(--neon-cyan);
-
   }
 
   .tab-btn.active {
-
     background: var(--neon-pink);
-
     color: #fff;
-
     border-color: #fff;
-
     box-shadow: 0 0 16px var(--neon-pink);
-
   }
 
   .leader-tab-btn {
-
     border-color: var(--neon-yellow);
-
     color: var(--neon-yellow);
-
     box-shadow: 0 0 8px rgba(255,230,0,0.3);
-
   }
 
   .leader-tab-btn:hover {
-
     background: var(--neon-yellow);
-
     color: #000;
-
     box-shadow: 0 0 16px var(--neon-yellow);
-
   }
 
   .leader-tab-btn.active {
-
     background: var(--neon-yellow);
-
     color: #000;
-
     border-color: #fff;
-
     box-shadow: 0 0 18px var(--neon-yellow);
-
   }
 
   .full-view-tab-btn {
-
     border-color: var(--neon-purple);
-
     color: #df96ff;
-
     box-shadow: 0 0 8px rgba(176,38,255,0.3);
-
   }
 
   .full-view-tab-btn:hover {
-
     background: var(--neon-purple);
-
     color: #fff;
-
     box-shadow: 0 0 16px var(--neon-purple);
-
   }
 
   .full-view-tab-btn.active {
-
     background: var(--neon-purple);
-
     color: #fff;
-
     border-color: #fff;
-
     box-shadow: 0 0 18px var(--neon-purple);
-
   }
 
   .fullscreen-btn {
-
     border-color: var(--neon-green);
-
     color: var(--neon-green);
-
     box-shadow: 0 0 8px rgba(57,255,20,0.3);
-
   }
 
   .fullscreen-btn:hover {
-
     background: var(--neon-green);
-
     color: #000;
-
     box-shadow: 0 0 16px var(--neon-green);
-
   }
 
   .admin-trigger-btn {
-
     border-color: #ff3333;
-
     color: #ff3333;
-
     box-shadow: 0 0 8px rgba(255,51,51,0.3);
-
   }
 
   .admin-trigger-btn:hover {
-
     background: #ff3333;
-
     color: #000;
-
     box-shadow: 0 0 16px #ff3333;
-
   }
 
   /* Full Bracket Control Toolbar */
-
   .full-bracket-toolbar {
-
     display: none;
-
     justify-content: space-between;
-
     align-items: center;
-
     max-width: 1350px;
-
     margin: 0 auto 15px auto;
-
     padding: 10px 18px;
-
     background: rgba(0, 0, 0, 0.85);
-
     border: 2px solid var(--neon-purple);
-
     box-shadow: 0 0 14px rgba(176,38,255,0.4);
-
     flex-wrap: wrap;
-
     gap: 12px;
-
   }
 
   .toolbar-group {
-
     display: flex;
-
     align-items: center;
-
     gap: 10px;
-
     flex-wrap: wrap;
-
   }
 
   .toolbar-label {
-
     font-size: 0.65rem;
-
     color: var(--neon-yellow);
-
   }
 
   .toolbar-link {
-
     color: var(--neon-cyan);
-
     font-size: 0.65rem;
-
     text-decoration: none;
-
     border: 1px solid var(--neon-cyan);
-
     padding: 4px 8px;
-
     background: #000;
-
     transition: all 0.1s ease;
-
   }
 
   .toolbar-link:hover {
-
     background: var(--neon-cyan);
-
     color: #000;
-
   }
 
   .zoom-btn {
-
     background: #000;
-
     color: #fff;
-
     border: 1px solid var(--neon-pink);
-
     font-family: 'Press Start 2P', monospace;
-
     font-size: 0.6rem;
-
     padding: 5px 8px;
-
     cursor: pointer;
-
   }
 
   .zoom-btn:hover {
-
     background: var(--neon-pink);
-
     color: #fff;
-
   }
 
   .zoom-btn.active-zoom {
-
     background: var(--neon-pink);
-
     color: #fff;
-
     font-weight: bold;
-
     box-shadow: 0 0 8px var(--neon-pink);
-
   }
 
   /* Section Dividers for Full View */
-
   .section-divider-title {
-
     display: none;
-
     padding: 12px 16px;
-
     margin: 30px 25px 15px 25px;
-
     background: rgba(18, 10, 38, 0.95);
-
     border-left: 6px solid var(--neon-yellow);
-
     border-top: 2px solid var(--neon-yellow);
-
     border-bottom: 2px solid var(--neon-yellow);
-
     color: var(--neon-yellow);
-
     font-size: 0.95rem;
-
     text-shadow: 0 0 10px var(--neon-yellow);
-
     letter-spacing: 1px;
-
     box-shadow: 0 0 12px rgba(255,230,0,0.3);
-
   }
 
   /* Full Bracket Container & Zoom Wrapper */
-
   #bracket-super-container {
-
     width: 100%;
-
     position: relative;
-
   }
 
   #zoomable-bracket-wrapper {
-
     transition: transform 0.2s ease;
-
     transform-origin: top center;
-
     width: 100%;
-
   }
 
   /* Main Tournament Bracket Containers */
-
   .bracket-container {
-
     display: none;
-
     padding: 15px 25px 50px 25px;
-
     overflow-x: auto;
-
     width: 100%;
-
   }
 
   .bracket-container.active-view {
-
     display: block;
-
   }
 
   .bracket-rounds-wrapper {
-
     display: flex;
-
     gap: 40px;
-
     min-width: 1300px;
-
     justify-content: flex-start;
-
     padding-bottom: 25px;
-
   }
 
   .bracket-round {
-
     flex: 1;
-
     min-width: 300px;
-
     display: flex;
-
     flex-direction: column;
-
   }
 
   .round-header {
-
     text-align: center;
-
     padding: 10px;
-
     background: rgba(0, 0, 0, 0.85);
-
     border: 2px solid var(--neon-yellow);
-
     color: var(--neon-yellow);
-
     font-size: 0.8rem;
-
     text-shadow: 0 0 8px var(--neon-yellow);
-
     margin-bottom: 25px;
-
     box-shadow: 0 0 10px rgba(255,230,0,0.3);
-
   }
 
   .bouts-list {
-
     display: flex;
-
     flex-direction: column;
-
     justify-content: space-around;
-
     height: 100%;
-
     gap: 30px;
-
   }
 
   /* Matchup / Bout Box */
-
   .bout-card {
-
     background: var(--arcade-panel);
-
     border: 2px solid var(--neon-cyan);
-
     box-shadow: 0 0 12px rgba(0,243,255,0.25);
-
     padding: 10px;
-
     position: relative;
-
     border-radius: 4px;
-
     transition: all 0.2s ease;
-
   }
 
   .bout-card:hover {
-
     box-shadow: 0 0 18px rgba(0,243,255,0.5);
-
   }
 
   .bout-card.locked-bout {
-
     border-color: #ff3333;
-
     box-shadow: 0 0 10px rgba(255, 51, 51, 0.3);
-
   }
 
   .bout-card.greyed-out {
-
     opacity: 0.42;
-
     filter: grayscale(85%);
-
     pointer-events: none;
-
     border-color: #555;
-
     box-shadow: none;
-
   }
 
   .bout-header-bar {
-
     display: flex;
-
     justify-content: space-between;
-
     align-items: center;
-
     font-size: 0.6rem;
-
     margin-bottom: 8px;
-
     padding-bottom: 5px;
-
     border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
-
     color: #8be9fd;
-
   }
 
   .locked-badge {
-
     background: #ff0055;
-
     color: #fff;
-
     padding: 2px 6px;
-
     font-size: 0.5rem;
-
     border-radius: 2px;
-
   }
 
   .open-badge {
-
     background: var(--neon-green);
-
     color: #000;
-
     padding: 2px 6px;
-
     font-size: 0.5rem;
-
     border-radius: 2px;
-
     font-weight: bold;
-
   }
 
   .points-awarded-badge {
-
     color: var(--neon-green);
-
     font-size: 0.55rem;
-
     margin-left: 6px;
-
     text-shadow: 0 0 6px var(--neon-green);
-
   }
 
   .team-slot {
-
     display: flex;
-
     justify-content: space-between;
-
     align-items: center;
-
     padding: 8px 10px;
-
     margin: 5px 0;
-
     background: rgba(0, 0, 0, 0.7);
-
     border: 1px solid rgba(255, 255, 255, 0.15);
-
     border-radius: 2px;
-
     position: relative;
-
     transition: all 0.15s;
-
   }
 
   .team-slot.winner-slot {
-
     border-color: var(--neon-green);
-
     background: rgba(57, 255, 20, 0.12);
-
   }
 
   .team-slot.eliminated-slot {
-
     opacity: 0.5;
-
     text-decoration: line-through;
-
     border-color: #555;
-
   }
 
   .team-info {
-
     display: flex;
-
     align-items: center;
-
     gap: 8px;
-
     max-width: 65%;
-
   }
 
   .seed-badge {
-
     color: var(--neon-yellow);
-
     font-size: 0.65rem;
-
   }
 
   .team-name {
-
     font-size: 0.7rem;
-
     white-space: nowrap;
-
     overflow: hidden;
-
     text-overflow: ellipsis;
-
     letter-spacing: 0.5px;
-
   }
 
   .action-col {
-
     display: flex;
-
     align-items: center;
-
     gap: 10px;
-
   }
 
   .vote-count {
-
     font-family: 'VT323', monospace;
-
     font-size: 1.5rem;
-
     color: var(--neon-yellow);
-
     min-width: 32px;
-
     text-align: right;
-
   }
 
   .vote-btn {
-
     background: #000;
-
     color: var(--neon-pink);
-
     border: 2px solid var(--neon-pink);
-
     font-family: 'Press Start 2P', monospace;
-
     font-size: 0.55rem;
-
     padding: 5px 8px;
-
     cursor: pointer;
-
     box-shadow: 0 0 6px rgba(255,0,127,0.3);
-
     transition: all 0.1s;
-
   }
 
   .vote-btn:hover:not(:disabled) {
-
     background: var(--neon-pink);
-
     color: #fff;
-
     box-shadow: 0 0 12px var(--neon-pink);
-
   }
 
   .vote-btn:disabled {
-
     opacity: 0.3;
-
     cursor: not-allowed;
-
     border-color: #666;
-
     color: #888;
-
   }
 
   .vote-btn.has-voted {
-
     background: var(--neon-green);
-
     color: #000;
-
     border-color: #fff;
-
     box-shadow: 0 0 10px var(--neon-green);
-
   }
 
   .vs-badge {
-
     text-align: center;
-
     font-size: 0.55rem;
-
     color: rgba(255, 255, 255, 0.4);
-
     margin: 2px 0;
-
   }
 
   /* High Score Leaderboard Styling */
-
   .leaderboard-panel {
-
     max-width: 860px;
-
     margin: 15px auto 40px auto;
-
     background: rgba(18, 10, 38, 0.95);
-
     border: 4px solid var(--neon-yellow);
-
     box-shadow: 0 0 25px rgba(255,230,0,0.4);
-
     padding: 24px;
-
   }
 
   .leader-title {
-
     text-align: center;
-
     color: var(--neon-yellow);
-
     font-size: 1.25rem;
-
     margin-bottom: 8px;
-
     text-shadow: 0 0 10px var(--neon-yellow);
-
   }
 
   .leader-subtitle {
-
     text-align: center;
-
     font-size: 0.62rem;
-
     color: var(--neon-cyan);
-
     margin-bottom: 18px;
-
     letter-spacing: 1px;
-
     line-height: 1.5;
-
   }
 
   .cloud-bar {
-
     display: flex;
-
     justify-content: space-between;
-
     align-items: center;
-
     background: #000;
-
     border: 1px dashed var(--neon-cyan);
-
     padding: 8px 12px;
-
     margin-bottom: 18px;
-
     font-size: 0.6rem;
-
   }
 
   .leader-table {
-
     width: 100%;
-
     border-collapse: collapse;
-
     font-size: 0.72rem;
-
   }
 
   .leader-table th {
-
     background: #000;
-
     color: var(--neon-pink);
-
     padding: 12px 10px;
-
     text-align: left;
-
     border-bottom: 2px solid var(--neon-pink);
-
     letter-spacing: 1px;
-
   }
 
   .leader-table td {
-
     padding: 12px 10px;
-
     border-bottom: 1px dashed rgba(255,255,255,0.15);
-
   }
 
   .leader-table tr:hover td {
-
     background: rgba(255, 230, 0, 0.08);
-
   }
 
   .leader-table tr.current-user-row td {
-
     background: rgba(57, 255, 20, 0.14);
-
     color: var(--neon-green);
-
     font-weight: bold;
-
     border-left: 3px solid var(--neon-green);
-
   }
 
   .rank-col {
-
     color: var(--neon-yellow);
-
     width: 80px;
-
   }
 
   .rank-1 { color: #ffd700; text-shadow: 0 0 8px #ffd700; }
-
   .rank-2 { color: #00f3ff; text-shadow: 0 0 8px #00f3ff; }
-
   .rank-3 { color: #ff007f; text-shadow: 0 0 8px #ff007f; }
 
   /* Modals */
-
   .modal-overlay {
-
     display: none;
-
     position: fixed;
-
     top: 0;
-
     left: 0;
-
     width: 100vw;
-
     height: 100vh;
-
     background: rgba(0, 0, 0, 0.88);
-
     backdrop-filter: blur(4px);
-
     z-index: 1005;
-
     justify-content: center;
-
     align-items: center;
-
   }
 
   .modal-box {
-
     background: #0a0518;
-
     border: 4px solid var(--neon-cyan);
-
     box-shadow: 0 0 25px var(--neon-cyan);
-
     padding: 24px;
-
     width: 90%;
-
     max-width: 500px;
-
     text-align: center;
-
   }
 
   .modal-title {
-
     color: var(--neon-yellow);
-
     font-size: 1rem;
-
     margin-bottom: 14px;
-
     text-shadow: 0 0 8px var(--neon-yellow);
-
   }
 
   .modal-desc {
-
     font-size: 0.65rem;
-
     line-height: 1.6;
-
     margin-bottom: 18px;
-
     color: #fff;
-
   }
 
   .modal-input {
-
     width: 100%;
-
     background: #000;
-
     border: 2px solid var(--neon-yellow);
-
     color: var(--neon-yellow);
-
     font-family: 'Press Start 2P', monospace;
-
     font-size: 0.82rem;
-
     padding: 12px;
-
     text-align: center;
-
     margin-bottom: 16px;
-
     outline: none;
-
     text-transform: uppercase;
-
     box-shadow: 0 0 12px rgba(255,230,0,0.3);
-
   }
 
   .modal-input:focus {
-
     border-color: var(--neon-pink);
-
     box-shadow: 0 0 16px rgba(255,0,127,0.5);
-
   }
 
   .modal-actions {
-
     display: flex;
-
     justify-content: center;
-
     gap: 12px;
-
   }
 
   /* Admin Drawer Modal */
-
   .admin-overlay {
-
     display: none;
-
     position: fixed;
-
     top: 0;
-
     left: 0;
-
     width: 100vw;
-
     height: 100vh;
-
     background: rgba(0, 0, 0, 0.85);
-
     backdrop-filter: blur(4px);
-
     z-index: 1000;
-
     justify-content: center;
-
     align-items: center;
-
   }
 
   .admin-dialog {
-
     background: #0a0518;
-
     border: 4px solid var(--neon-yellow);
-
     box-shadow: 0 0 25px var(--neon-yellow);
-
     width: 90%;
-
     max-width: 780px;
-
     max-height: 85vh;
-
     display: flex;
-
     flex-direction: column;
-
     padding: 20px;
-
   }
 
   .admin-header {
-
     display: flex;
-
     justify-content: space-between;
-
     align-items: center;
-
     border-bottom: 2px dashed var(--neon-yellow);
-
     padding-bottom: 12px;
-
     margin-bottom: 15px;
-
   }
 
   .admin-title {
-
     color: var(--neon-yellow);
-
     font-size: 1.1rem;
-
     text-shadow: 0 0 8px var(--neon-yellow);
-
   }
 
   .close-admin-btn {
-
     background: #ff0055;
-
     color: #fff;
-
     border: none;
-
     font-family: 'Press Start 2P', monospace;
-
     padding: 6px 10px;
-
     cursor: pointer;
-
   }
 
   .admin-body {
-
     overflow-y: auto;
-
     padding-right: 10px;
-
   }
 
   .admin-actions-bar {
-
     display: flex;
-
     gap: 10px;
-
     margin-bottom: 20px;
-
     flex-wrap: wrap;
-
   }
 
   .admin-act-btn {
-
     background: #000;
-
     color: #fff;
-
     border: 2px solid var(--neon-cyan);
-
     font-family: 'Press Start 2P', monospace;
-
     font-size: 0.65rem;
-
     padding: 8px 12px;
-
     cursor: pointer;
-
   }
 
   .admin-act-btn:hover {
-
     background: var(--neon-cyan);
-
     color: #000;
-
   }
 
   .admin-advance-btn {
-
     border-color: var(--neon-green);
-
     color: var(--neon-green);
-
     box-shadow: 0 0 8px rgba(57,255,20,0.3);
-
   }
 
   .admin-advance-btn:hover {
-
     background: var(--neon-green);
-
     color: #000;
-
     box-shadow: 0 0 15px var(--neon-green);
-
   }
 
   .admin-bout-row {
-
     display: flex;
-
     justify-content: space-between;
-
     align-items: center;
-
     padding: 10px;
-
     border: 1px solid rgba(255, 255, 255, 0.15);
-
     margin-bottom: 8px;
-
     background: rgba(255, 255, 255, 0.03);
-
     font-size: 0.65rem;
-
   }
 
   .toggle-lock-btn {
-
     padding: 5px 10px;
-
     font-family: 'Press Start 2P', monospace;
-
     font-size: 0.55rem;
-
     cursor: pointer;
-
     background: #000;
-
   }
 
   .toggle-lock-btn.is-locked {
-
     border: 2px solid #ff3333;
-
     color: #ff3333;
-
   }
 
   .toggle-lock-btn.is-unlocked {
-
     border: 2px solid var(--neon-green);
-
     color: var(--neon-green);
-
   }
 
   /* Champion Marquee Announcement */
-
   .champion-ribbon {
-
     display: none;
-
     background: linear-gradient(90deg, #ff007f, #ffe600, #00f3ff);
-
     color: #000;
-
     text-align: center;
-
     padding: 14px;
-
     font-size: 1.1rem;
-
     font-weight: bold;
-
     letter-spacing: 2px;
-
     margin-bottom: 20px;
-
     box-shadow: 0 0 25px rgba(255,230,0,0.8);
-
     animation: rainbowGlow 3s infinite linear;
-
   }
 
   @keyframes rainbowGlow {
-
     0% { filter: hue-rotate(0deg); }
-
     100% { filter: hue-rotate(360deg); }
-
   }
 
   footer {
-
     text-align: center;
-
     padding: 25px;
-
     font-size: 0.6rem;
-
     color: rgba(255,255,255,0.4);
-
     border-top: 1px solid rgba(255, 0, 127, 0.3);
-
     margin-top: 40px;
-
   }
-
 </style>
-
 </head>
-
 <body>
 
 <audio id="bg-music" loop>
-
   <source src="pizza.mp3" type="audio/mpeg">
-
   Your browser does not support the audio element.
-
 </audio>
 
 <div class="crt-overlay"></div>
-
 <div class="grid-bg"></div>
-
 <div id="pizza-canvas-container"></div>
 
 <header>
-
   <div class="arcade-banner">
-
     <h1 class="title-main">127 COS PIZZA WARS '26</h1>
-
   </div>
 
   <div class="scoreboard">
-
     <div class="score-box pilot-badge" onclick="promptPlayerNameModal()" title="Click to Change Pilot Name">
-
       PLAYER: <span id="current-player-name" class="val">---</span>
-
     </div>
-
     <div class="score-box points-box">
-
       SCORE: <span id="current-player-score" class="val">0</span> PTS
-
     </div>
-
     <div class="score-box">
-
       CREDITS: <span id="user-credits" class="val">8</span>
-
     </div>
-
     <div class="score-box">
-
       STAGE: <span id="current-stage-title" class="val">ROUND 1</span>
-
     </div>
-
     <div class="score-box">
-
       TOTAL BALLOTS: <span id="total-ballots" class="val">0</span>
-
     </div>
-
     <div class="score-box">
-
       <span id="cloud-badge" class="cloud-status-badge cloud-online">● ONLINE</span>
-
     </div>
-
   </div>
 
   <div id="champion-marquee" class="champion-ribbon">
-
     ★ THE TOURNAMENT HAS CONCLUDED! CROWNED CHAMPION: <span id="champion-name"></span> ★
-
   </div>
 
   <div class="nav-tabs">
-
     <button class="tab-btn active" id="tab-winners" onclick="switchView('winners')">WINNERS BRACKET</button>
-
     <button class="tab-btn" id="tab-losers" onclick="switchView('losers')">LOSERS BRACKET</button>
-
     <button class="tab-btn" id="tab-grand" onclick="switchView('grand')">GRAND FINALS</button>
-
     <button class="tab-btn full-view-tab-btn" id="tab-all" onclick="switchView('all')">FULL BRACKET VIEW ⛶</button>
-
     <button class="tab-btn leader-tab-btn" id="tab-leaderboard" onclick="switchView('leaderboard')">HIGH SCORES ★</button>
-
     <button class="tab-btn fullscreen-btn" id="fullscreen-toggle-btn" onclick="toggleFullscreen()" title="Toggle Fullscreen">FULLSCREEN ⛶</button>
-
     <button class="tab-btn admin-trigger-btn" onclick="requestAdminAuth()">OPERATOR / ADMIN PANEL</button>
-
   </div>
 
   <!-- Full Bracket Quick Controls (Active in Full View) -->
-
   <div class="full-bracket-toolbar" id="full-bracket-toolbar">
-
     <div class="toolbar-group">
-
       <span class="toolbar-label">JUMP TO:</span>
-
       <a href="#winners-anchor" class="toolbar-link" onclick="sfxSwitch()">▲ WINNERS</a>
-
       <a href="#losers-anchor" class="toolbar-link" onclick="sfxSwitch()">▼ LOSERS</a>
-
       <a href="#grand-anchor" class="toolbar-link" onclick="sfxSwitch()">★ FINALS</a>
-
     </div>
-
     <div class="toolbar-group">
-
       <span class="toolbar-label">VIEW SCALE:</span>
-
       <button class="zoom-btn" onclick="setBracketZoom(0.65)">65%</button>
-
       <button class="zoom-btn" onclick="setBracketZoom(0.8)">80%</button>
-
       <button class="zoom-btn active-zoom" id="zoom-100-btn" onclick="setBracketZoom(1.0)">100%</button>
-
       <button class="zoom-btn" onclick="toggleFullscreen()">TOGGLE FULLSCREEN</button>
-
     </div>
-
   </div>
-
 </header>
 
 <div id="bracket-super-container">
-
   <div id="zoomable-bracket-wrapper">
-
     <!-- Section Heading for Full View -->
-
     <div id="winners-anchor" class="section-divider-title">► WINNERS BRACKET (UPPER DIVISION)</div>
 
     <!-- Winners Bracket View -->
-
     <div id="winners-view" class="bracket-container active-view">
-
       <div class="bracket-rounds-wrapper">
-
         <!-- Round 1 -->
-
         <div class="bracket-round">
-
           <div class="round-header">STAGE 1: ROUND OF 16</div>
-
           <div class="bouts-list" id="winners-round-1"></div>
-
         </div>
-
         <!-- Round 2 -->
-
         <div class="bracket-round">
-
           <div class="round-header">STAGE 2: QUARTERFINALS</div>
-
           <div class="bouts-list" id="winners-round-2"></div>
-
         </div>
-
         <!-- Round 3 -->
-
         <div class="bracket-round">
-
           <div class="round-header">STAGE 3: SEMIFINALS</div>
-
           <div class="bouts-list" id="winners-round-3"></div>
-
         </div>
-
         <!-- Round 4 -->
-
         <div class="bracket-round">
-
           <div class="round-header">STAGE 4: WINNERS FINAL</div>
-
           <div class="bouts-list" id="winners-round-4"></div>
-
         </div>
-
       </div>
-
     </div>
 
     <!-- Section Heading for Full View -->
-
-    <div id="losers-anchor" class="section-divider-title">► LOSERS BRACKET (DOUBLE ELIMINATION REDEMPTION)</div>
+    <div id="losers-anchor" class="section-divider-title">► LOSERS BRACKET (DOUBLE ELIMINATION REDEMINATION)</div>
 
     <!-- Losers Bracket View -->
-
     <div id="losers-view" class="bracket-container">
-
       <div class="bracket-rounds-wrapper">
-
         <div class="bracket-round">
-
           <div class="round-header">LOSERS ROUND 1</div>
-
           <div class="bouts-list" id="losers-round-1"></div>
-
         </div>
-
         <div class="bracket-round">
-
           <div class="round-header">LOSERS ROUND 2</div>
-
           <div class="bouts-list" id="losers-round-2"></div>
-
         </div>
-
         <div class="bracket-round">
-
           <div class="round-header">LOSERS ROUND 3</div>
-
           <div class="bouts-list" id="losers-round-3"></div>
-
         </div>
-
         <div class="bracket-round">
-
           <div class="round-header">LOSERS ROUND 4</div>
-
           <div class="bouts-list" id="losers-round-4"></div>
-
         </div>
-
         <div class="bracket-round">
-
           <div class="round-header">LOSERS FINAL</div>
-
           <div class="bouts-list" id="losers-round-5"></div>
-
         </div>
-
       </div>
-
     </div>
 
     <!-- Section Heading for Full View -->
-
     <div id="grand-anchor" class="section-divider-title">► GRAND FINALS CHAMPIONSHIP MATCHUP</div>
 
     <!-- Grand Finals View -->
-
     <div id="grand-view" class="bracket-container">
-
       <div style="max-width: 580px; margin: 20px auto;">
-
         <div class="round-header">CHAMPIONSHIP BOUT</div>
-
         <div id="grand-finals-bout" style="margin-top: 25px;"></div>
-
       </div>
-
     </div>
-
   </div>
-
 </div>
 
 <!-- High Scores Leaderboard View -->
-
 <div id="leaderboard-view" class="bracket-container">
-
   <div class="leaderboard-panel">
-
     <h2 class="leader-title">★ TOP PIZZA PREDICTORS // HALL OF FAME ★</h2>
-
     <p class="leader-subtitle">10 PTS AWARDED FOR EACH CORRECT MATCHUP PREDICTION • SYNCHRONIZED ACROSS ALL USERS</p>
-
     <div class="cloud-bar">
-
       <div>STATUS: <span id="cloud-table-status" style="color:var(--neon-green)">CHECKING SUPABASE...</span></div>
-
       <div>
-
         <button class="tab-btn" onclick="fetchCloudLeaderboard()" style="padding:4px 8px; font-size:0.55rem; border-color:var(--neon-cyan);">REFRESH ⟳</button>
-
       </div>
-
     </div>
-
     <table class="leader-table">
-
       <thead>
-
         <tr>
-
           <th class="rank-col">RANK</th>
-
           <th>PILOT (LAST NAME)</th>
-
           <th style="text-align: center;">CORRECT PICKS</th>
-
           <th style="text-align: right;">TOTAL SCORE</th>
-
         </tr>
-
       </thead>
-
       <tbody id="leaderboard-tbody">
-
         <!-- Rendered dynamically -->
-
       </tbody>
-
     </table>
-
   </div>
-
 </div>
 
 <!-- Player Last Name Initial Prompt Modal -->
-
 <div id="player-modal" class="modal-overlay">
-
   <div class="modal-box" style="border-color: var(--neon-yellow); box-shadow: 0 0 25px var(--neon-yellow);">
-
     <h3 class="modal-title">INSERT COIN // IDENTIFY PILOT</h3>
-
     <p class="modal-desc">Enter your <strong>LAST NAME</strong> to register your bracket predictions and compete for the High Score Leaderboard!</p>
-
     <input type="text" id="player-name-input" class="modal-input" placeholder="ENTER LAST NAME..." maxlength="20" autocomplete="off">
-
     <div class="modal-actions">
-
       <button class="tab-btn" onclick="savePlayerName()" style="border-color: var(--neon-green); color: var(--neon-green);">START GAME</button>
-
     </div>
-
   </div>
-
 </div>
 
 <!-- Cloud Config Modal (Accessible exclusively via Admin Panel) -->
-
 <div id="cloud-modal" class="modal-overlay">
-
   <div class="modal-box" style="border-color: var(--neon-yellow); max-width: 560px;">
-
     <h3 class="modal-title" style="color: var(--neon-yellow);">SUPABASE CONFIGURATION</h3>
-
     <p class="modal-desc">Configure or update your Supabase backend parameters.</p>
-
     <input type="text" id="cfg-supabase-url" class="modal-input" style="font-size: 0.65rem; text-transform: none; margin-bottom: 8px;" placeholder="https://xyz.supabase.co">
-
     <textarea id="cfg-supabase-key" class="modal-input" style="font-size: 0.6rem; height: 80px; text-transform: none; padding: 8px; margin-bottom: 14px;" placeholder="Paste Supabase anon / public key..."></textarea>
-
     <div class="modal-actions">
-
       <button class="tab-btn" onclick="saveCloudConfig()" style="border-color: var(--neon-green); color: var(--neon-green);">SAVE & TEST</button>
-
       <button class="tab-btn" onclick="closeCloudConfigModal()">CLOSE</button>
-
     </div>
-
   </div>
-
 </div>
 
 <!-- Admin Drawer Modal -->
-
 <div id="admin-overlay" class="admin-overlay">
-
   <div class="admin-dialog">
-
     <div class="admin-header">
-
       <h2 class="admin-title">DIP SWITCH OPERATOR PANEL</h2>
-
       <button class="close-admin-btn" onclick="closeAdmin()">X</button>
-
     </div>
-
     <div class="admin-actions-bar">
-
       <button class="admin-act-btn admin-advance-btn" onclick="advanceCurrentStage()">ADVANCE ACTIVE ROUND >></button>
-
       <button class="admin-act-btn" onclick="openCloudConfigModal()" style="border-color: var(--neon-yellow); color: var(--neon-yellow);">CONFIG SUPABASE ☁</button>
-
       <button class="admin-act-btn" onclick="toggleAllBouts(true)">LOCK ALL BOUTS</button>
-
       <button class="admin-act-btn" onclick="toggleAllBouts(false)">UNLOCK ALL BOUTS</button>
-
       <button class="admin-act-btn" onclick="resetTournamentPrompt()" style="border-color: #ff3333; color: #ff3333;">RESET TOURNAMENT</button>
-
     </div>
-
     <div class="admin-body" id="admin-bout-controls"></div>
-
   </div>
-
 </div>
 
 <!-- Operator Password Modal -->
-
 <div id="auth-modal" class="modal-overlay">
-
   <div class="modal-box" style="border-color: var(--neon-pink); box-shadow: 0 0 25px var(--neon-pink);">
-
     <h3 class="modal-title" style="color: var(--neon-pink);">INSERT OPERATOR KEY</h3>
-
     <input type="password" id="admin-password-input" class="modal-input" placeholder="ENTER CODE..." autocomplete="off">
-
     <div class="modal-actions">
-
       <button class="tab-btn" onclick="verifyAdminPassword()" style="border-color: var(--neon-green); color: var(--neon-green);">VERIFY</button>
-
       <button class="tab-btn" onclick="closeAuthModal()">CANCEL</button>
-
     </div>
-
     <p id="auth-error" style="color: #ff3333; font-size: 0.6rem; margin-top: 14px; display: none;">ACCESS DENIED // INCORRECT KEY</p>
-
   </div>
-
 </div>
 
 <!-- Vote Switch Confirmation Modal -->
-
 <div id="confirm-modal" class="modal-overlay">
-
   <div class="modal-box">
-
     <h3 class="modal-title">CHANGE YOUR VOTE?</h3>
-
     <p class="modal-desc" id="confirm-modal-text">You currently have a vote registered. Would you like to switch your vote?</p>
-
     <div class="modal-actions">
-
       <button class="tab-btn" id="confirm-switch-btn" style="border-color: var(--neon-green); color: var(--neon-green);">CONFIRM SWITCH</button>
-
       <button class="tab-btn" onclick="closeConfirmModal()">CANCEL</button>
-
     </div>
-
   </div>
-
 </div>
 
 <footer>
-
   127 COS PIZZA WARS '26 • CONNECTED TO SUPABASE CLOUD DATABASE • HOSTED ON GITHUB PAGES
-
 </footer>
 
 <script>
-
   // Function to start the audio unmuted
-
   function startUnmutedAudio() {
-
     const audio = document.getElementById('bg-music');
-
     // Volume
-
     audio.volume = 0.4;
-
     // Attempt to play the audio
-
     audio.play().then(() => {
-
       console.log("Playback started successfully!");
-
       // Clean up: Remove the listeners so they don't fire again on subsequent clicks
-
       document.removeEventListener('click', startUnmutedAudio);
-
       document.removeEventListener('touchstart', startUnmutedAudio);
-
     }).catch((error) => {
-
       console.log("Playback failed or was blocked by browser: ", error);
-
     });
-
   }
-
   // Listen for the absolute first click or screen tap on the page
-
   document.addEventListener('click', startUnmutedAudio);
-
   document.addEventListener('touchstart', startUnmutedAudio); // For mobile support
 
 /**
-
  * AUDIO SYNTHESIS FX
-
  */
-
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function play8BitTone(freq, type, duration) {
-
   try {
-
     const osc = audioCtx.createOscillator();
-
     const gain = audioCtx.createGain();
-
     osc.type = type;
-
     osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-
     gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-
     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-
     osc.connect(gain);
-
     gain.connect(audioCtx.destination);
-
     osc.start();
-
     osc.stop(audioCtx.currentTime + duration);
-
   } catch(e) {}
-
 }
 
 function sfxCoin() {
-
   play8BitTone(987.77, 'square', 0.08);
-
   setTimeout(() => play8BitTone(1318.51, 'square', 0.22), 70);
-
 }
-
 function sfxBuzz() { play8BitTone(120, 'sawtooth', 0.18); }
-
 function sfxSwitch() { play8BitTone(440, 'triangle', 0.1); }
-
 function sfxFanfare() {
-
   play8BitTone(523.25, 'square', 0.1);
-
   setTimeout(() => play8BitTone(659.25, 'square', 0.1), 100);
-
   setTimeout(() => play8BitTone(783.99, 'square', 0.1), 200);
-
   setTimeout(() => play8BitTone(1046.50, 'square', 0.3), 300);
-
 }
 
 /**
-
  * BACKGROUND FLOATING PIZZAS (3x Density)
-
  */
-
 function initBackgroundPizzas() {
-
   const container = document.getElementById('pizza-canvas-container');
-
   if (!container) return;
-
   container.innerHTML = '';
-
   const count = 42;
-
   for (let i = 0; i < count; i++) {
-
     const pizza = document.createElement('div');
-
     pizza.className = 'floating-pizza';
-
     pizza.style.left = Math.random() * 98 + 'vw';
-
     const duration = 12 + Math.random() * 22;
-
     pizza.style.animationDuration = duration + 's';
-
     pizza.style.animationDelay = -(Math.random() * duration) + 's';
-
     const scale = 0.65 + Math.random() * 0.9;
-
     pizza.style.transform = `scale(${scale})`;
-
     container.appendChild(pizza);
-
   }
-
 }
-
 initBackgroundPizzas();
 
 /**
-
  * STORAGE KEYS & CONFIGURATION
-
  */
-
 const STORAGE_KEY = 'PW26_TOURNAMENT_STATE_V9';
-
 const CLIENT_SECRET_KEY = 'PW26_CLIENT_EPHEMERAL_SECRET';
-
 const PLAYER_NAME_KEY = 'PW26_PLAYER_LAST_NAME';
-
 const VOTE_STORAGE_KEY = 'PW26_USER_VOTES_LEDGER';
-
 const SUPABASE_URL_KEY = 'PW26_CFG_SUPABASE_URL';
-
 const SUPABASE_KEY_KEY = 'PW26_CFG_SUPABASE_ANON_KEY';
-
 const broadcastChannel = new BroadcastChannel('pizza_wars_sync_bus');
 
 // Default Supabase settings
-
 const DEFAULT_SUPABASE_URL = "https://tozmfbneiasmnxbftlqw.supabase.co";
-
 const DEFAULT_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvem1mYm5laWFzbW54YmZ0bHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzNzAzMjUsImV4cCI6MjEwMzk0NjMyNX0.-Z6w_lYZ9kmRtUWLK93XHP1aRUEd0NlEYM0qLvZWtNw";
 
 function getSupabaseConfig() {
-
   return {
-
     url: (localStorage.getItem(SUPABASE_URL_KEY) || DEFAULT_SUPABASE_URL).trim(),
-
     key: (localStorage.getItem(SUPABASE_KEY_KEY) || DEFAULT_SUPABASE_KEY).trim()
-
   };
-
 }
 
 // Ephemeral client secret - made persistent in localStorage
-
 let clientSecret = localStorage.getItem(CLIENT_SECRET_KEY);
-
-if (!clientSecret) {
-
-  try {
-
-    clientSecret = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-
-      .map(b => b.toString(16).padStart(2, '0')).join('');
-
-  } catch(e) {
-
-    clientSecret = 'sec_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-
+function ensureClientSecret() {
+  clientSecret = localStorage.getItem(CLIENT_SECRET_KEY);
+  if (!clientSecret) {
+    try {
+      clientSecret = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch(e) {
+      clientSecret = 'sec_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+    }
+    localStorage.setItem(CLIENT_SECRET_KEY, clientSecret);
   }
-
-  localStorage.setItem(CLIENT_SECRET_KEY, clientSecret);
-
+  return clientSecret;
 }
+ensureClientSecret();
 
 // SHA-256 WebCrypto utility with offline math fallback
-
 async function sha256(str) {
-
   try {
-
     if (window.crypto && crypto.subtle) {
-
       const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
-
       return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-
     }
-
   } catch(e) {}
-
   // Deterministic 64-bit fallback
-
   let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
-
   for (let i = 0; i < str.length; i++) {
-
     const ch = str.charCodeAt(i);
-
     h1 = Math.imul(h1 ^ ch, 2654435761);
-
     h2 = Math.imul(h2 ^ ch, 1597334677);
-
   }
-
   h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-
   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16).padStart(16, '0');
-
 }
 
 // User persistent cryptographic identity hash
-
 async function getUserIdentityHash() {
-
+  ensureClientSecret();
   return await sha256(`PW26_USER_IDENT_${clientSecret}`);
-
 }
 
 // Fixed Daily Salt Rotation: Removed dynamic epoch dates to keep predictions persistent daily!
-
 async function generateBoutSaltedHash(boutId) {
-
+  ensureClientSecret();
   const salt = `PW26_SALT_PERSISTENT_v2`;
-
   return await sha256(`${salt}::${boutId}::${clientSecret}`);
-
 }
 
 /**
-
- * DIRECT REST API ENGINE FOR SUPABASE
-
+ * SUPABASE CLIENT, REALTIME & DIRECT REST ENGINE
  */
-
 let cloudLeaderboardData = [];
-
+let cloudVotesData = [];
 let isCloudOnline = false;
+let supabaseClient = null;
+let realtimeChannel = null;
+let hadCloudRecord = false;
 
-async function executeSupabaseRest(endpoint, method = 'GET', body = null) {
-
+function initSupabaseRealtime() {
   const { url, key } = getSupabaseConfig();
+  if (!url || !key || !window.supabase) return;
 
+  try {
+    if (realtimeChannel && supabaseClient) {
+      supabaseClient.removeChannel(realtimeChannel);
+    }
+    supabaseClient = window.supabase.createClient(url.replace(/\/+$/, ''), key);
+
+    realtimeChannel = supabaseClient
+      .channel('pizza-wars-realtime-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pizza_wars_votes' }, () => {
+        fetchCloudVotesAndSync();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pizza_wars_scores' }, async (payload) => {
+        const myHash = await getUserIdentityHash();
+        if (payload.eventType === 'DELETE' && payload.old && payload.old.user_hash === myHash) {
+          clearDeletedUserInformation();
+          return;
+        }
+        fetchCloudLeaderboard();
+        fetchCloudVotesAndSync();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pizza_wars_state' }, () => {
+        fetchCloudTournamentState();
+      })
+      .subscribe();
+  } catch (e) {
+    console.warn("Supabase Realtime subscription error:", e);
+  }
+}
+
+// Clears all stored local information if the user is deleted from pizza_wars_scores in Supabase
+function clearDeletedUserInformation() {
+  if (appState.leaderboard && clientSecret) {
+    delete appState.leaderboard[clientSecret];
+  }
+  localStorage.removeItem(PLAYER_NAME_KEY);
+  localStorage.removeItem(VOTE_STORAGE_KEY);
+  localStorage.removeItem(CLIENT_SECRET_KEY);
+  hadCloudRecord = false;
+
+  // Generate fresh client identity secret
+  ensureClientSecret();
+  saveState(appState, true);
+
+  document.getElementById('current-player-name').innerText = '---';
+  document.getElementById('current-player-score').innerText = '0';
+
+  fetchCloudVotesAndSync();
+  fetchCloudLeaderboard();
+  promptPlayerNameModal();
+}
+
+async function executeSupabaseRest(endpoint, method = 'GET', body = null, customPrefer = 'return=representation') {
+  const { url, key } = getSupabaseConfig();
   if (!url || !key) return { success: false, error: 'NO_CONFIG' };
 
   const cleanUrl = url.replace(/\/+$/, '');
-
   const headers = {
-
     'apikey': key,
-
     'Authorization': `Bearer ${key}`,
-
     'Content-Type': 'application/json',
-
-    'Prefer': 'return=representation'
-
+    'Prefer': customPrefer
   };
 
   try {
-
     const opts = { method, headers };
-
     if (body && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
-
       opts.body = JSON.stringify(body);
-
     }
-
     const res = await fetch(`${cleanUrl}/rest/v1/${endpoint}`, opts);
-
     if (!res.ok) {
-
       const errText = await res.text();
-
       return { success: false, status: res.status, error: errText };
-
     }
-
-    const data = await res.json();
-
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : [];
     return { success: true, data };
-
   } catch (err) {
-
     return { success: false, error: err.message };
-
   }
-
 }
 
-async function syncUserScoreToCloud(score, correctCount) {
+// Fetch all votes from Supabase and update bout totals + current user's ledger
+async function fetchCloudVotesAndSync() {
+  const res = await executeSupabaseRest('pizza_wars_votes?select=*');
+  if (!res.success || !Array.isArray(res.data)) return;
 
+  cloudVotesData = res.data;
+  const myHash = await getUserIdentityHash();
+
+  // Reset all bout vote tallies before counting live database votes
+  Object.values(appState.bouts).forEach(bout => {
+    bout.v1 = 0;
+    bout.v2 = 0;
+  });
+
+  const rebuiltLedger = {};
+
+  for (const row of cloudVotesData) {
+    const bout = appState.bouts[row.bout_id];
+    if (bout) {
+      if (row.team_index === 1) bout.v1++;
+      else if (row.team_index === 2) bout.v2++;
+    }
+    if (row.user_hash === myHash) {
+      const expectedToken = await generateBoutSaltedHash(row.bout_id);
+      rebuiltLedger[row.bout_id] = {
+        teamIndex: row.team_index,
+        token: expectedToken,
+        predictedTeamName: row.predicted_team_name || '',
+        predictedSeed: row.predicted_seed
+      };
+    }
+  }
+
+  // Keep user's local vote ledger synchronized with cloud votes (clears if cascaded on user delete)
+  localStorage.setItem(VOTE_STORAGE_KEY, JSON.stringify(rebuiltLedger));
+  saveState(appState, false);
+  renderBracket();
+  if (document.getElementById('admin-overlay').style.display === 'flex') {
+    renderAdminControls();
+  }
+}
+
+// Push a single vote to Supabase pizza_wars_votes table
+async function syncVoteToCloud(boutId, stage, teamIndex, predictedTeam) {
   const playerName = (localStorage.getItem(PLAYER_NAME_KEY) || '').trim().toUpperCase();
+  if (!playerName) return;
 
+  // Ensure the parent user row exists in pizza_wars_scores first so the Foreign Key constraint succeeds
+  await syncUserScoreToCloud(
+    parseInt(document.getElementById('current-player-score').innerText || '0', 10),
+    0,
+    true
+  );
+
+  const userHash = await getUserIdentityHash();
+  const payload = {
+    user_hash: userHash,
+    player_name: playerName,
+    bout_id: boutId,
+    stage: stage,
+    team_index: teamIndex,
+    predicted_seed: predictedTeam ? predictedTeam.seed : null,
+    predicted_team_name: predictedTeam ? predictedTeam.name : '',
+    updated_at: new Date().toISOString()
+  };
+
+  await executeSupabaseRest(
+    'pizza_wars_votes?on_conflict=user_hash,bout_id',
+    'POST',
+    payload,
+    'resolution=merge-duplicates,return=representation'
+  );
+
+  await fetchCloudVotesAndSync();
+  await recalculateAllCloudPlayerScores();
+}
+
+// Sync tournament bracket state (stages, matchups, locks, winners) to Supabase
+async function syncTournamentStateToCloud() {
+  const payload = {
+    id: 1,
+    state_json: {
+      activeStage: appState.activeStage,
+      champion: appState.champion,
+      bouts: appState.bouts
+    },
+    updated_at: new Date().toISOString()
+  };
+  await executeSupabaseRest(
+    'pizza_wars_state?on_conflict=id',
+    'POST',
+    payload,
+    'resolution=merge-duplicates,return=representation'
+  );
+}
+
+async function fetchCloudTournamentState() {
+  const res = await executeSupabaseRest('pizza_wars_state?id=eq.1&select=*');
+  if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+    const remoteState = res.data[0].state_json;
+    if (remoteState && remoteState.bouts) {
+      appState.activeStage = remoteState.activeStage || 1;
+      appState.champion = remoteState.champion || null;
+      Object.keys(remoteState.bouts).forEach(boutId => {
+        if (appState.bouts[boutId]) {
+          const rb = remoteState.bouts[boutId];
+          appState.bouts[boutId].t1 = rb.t1;
+          appState.bouts[boutId].t2 = rb.t2;
+          appState.bouts[boutId].locked = rb.locked;
+          appState.bouts[boutId].winner = rb.winner;
+        }
+      });
+      await fetchCloudVotesAndSync();
+      updateLeaderboardAndScore(false);
+    }
+  }
+}
+
+// Recalculates and updates scores for all players in pizza_wars_scores when rounds advance
+async function recalculateAllCloudPlayerScores() {
+  const scoresRes = await executeSupabaseRest('pizza_wars_scores?select=*');
+  const votesRes = await executeSupabaseRest('pizza_wars_votes?select=*');
+  if (!scoresRes.success || !votesRes.success) return;
+
+  const votesByUser = {};
+  votesRes.data.forEach(v => {
+    if (!votesByUser[v.user_hash]) votesByUser[v.user_hash] = [];
+    votesByUser[v.user_hash].push(v);
+  });
+
+  for (const playerRow of scoresRes.data) {
+    const uVotes = votesByUser[playerRow.user_hash] || [];
+    let correct = 0;
+    uVotes.forEach(v => {
+      const bout = appState.bouts[v.bout_id];
+      if (bout && bout.winner && v.predicted_seed === bout.winner.seed) {
+        correct++;
+      }
+    });
+    const newScore = correct * 10;
+    if (playerRow.score !== newScore || playerRow.correct_picks !== correct) {
+      await executeSupabaseRest(
+        `pizza_wars_scores?user_hash=eq.${encodeURIComponent(playerRow.user_hash)}`,
+        'PATCH',
+        { score: newScore, correct_picks: correct, updated_at: new Date().toISOString() }
+      );
+    }
+  }
+  fetchCloudLeaderboard();
+}
+
+async function syncUserScoreToCloud(score, correctCount, skipLeaderboardRefresh = false) {
+  const playerName = (localStorage.getItem(PLAYER_NAME_KEY) || '').trim().toUpperCase();
   if (!playerName) return;
 
   const userHash = await getUserIdentityHash();
-
   const dateEpoch = new Date().toISOString().slice(0, 10);
 
+  // Calculate accurate score from current local ledger before syncing
+  const ledger = getLocalVotesLedger();
+  let computedCorrect = 0;
+  Object.values(appState.bouts).forEach(bout => {
+    if (bout.winner && ledger[bout.id]) {
+      if (ledger[bout.id].predictedSeed === bout.winner.seed) {
+        computedCorrect++;
+      }
+    }
+  });
+  const finalCorrect = computedCorrect;
+  const finalScore = finalCorrect * 10;
+
   const payload = {
-
     user_hash: userHash,
-
     player_name: playerName,
-
-    score: score,
-
-    correct_picks: correctCount,
-
+    score: finalScore,
+    correct_picks: finalCorrect,
     last_active_date: dateEpoch,
-
     updated_at: new Date().toISOString()
-
   };
 
   const { url, key } = getSupabaseConfig();
-
   try {
-
-    const res = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/pizza_wars_scores`, {
-
+    const res = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/pizza_wars_scores?on_conflict=user_hash`, {
       method: 'POST',
-
       headers: {
-
         'apikey': key,
-
         'Authorization': `Bearer ${key}`,
-
         'Content-Type': 'application/json',
-
         'Prefer': 'resolution=merge-duplicates,return=representation'
-
       },
-
       body: JSON.stringify(payload)
-
     });
 
     if (res.ok) {
-
+      hadCloudRecord = true;
       setCloudStatus(true);
-
     } else {
-
       setCloudStatus(false, `HTTP ${res.status}`);
-
     }
-
   } catch(e) {
-
     setCloudStatus(false, 'NETWORK');
-
   }
 
-  fetchCloudLeaderboard();
-
+  if (!skipLeaderboardRefresh) {
+    fetchCloudLeaderboard();
+  }
 }
 
 async function fetchCloudLeaderboard() {
-
   const statusElem = document.getElementById('cloud-table-status');
-
   if (statusElem) statusElem.innerText = 'SYNCING...';
 
   const res = await executeSupabaseRest('pizza_wars_scores?select=*&order=score.desc,correct_picks.desc&limit=100');
-
   if (res.success && Array.isArray(res.data)) {
-
     cloudLeaderboardData = res.data;
-
     setCloudStatus(true);
-
     if (statusElem) statusElem.innerText = `CONNECTED (${res.data.length} PLAYERS)`;
 
-    renderLeaderboardTable();
+    // Check if the current active user was deleted from pizza_wars_scores in Supabase
+    const myHash = await getUserIdentityHash();
+    const myName = localStorage.getItem(PLAYER_NAME_KEY);
+    const stillExists = cloudLeaderboardData.some(row => row.user_hash === myHash);
 
-  } else {
-
-    setCloudStatus(false, res.error);
-
-    if (statusElem) {
-
-      statusElem.innerText = `OFFLINE (${res.error || 'Check Config'})`;
-
-      statusElem.style.color = '#ff3333';
-
+    if (myName && hadCloudRecord && !stillExists) {
+      clearDeletedUserInformation();
+      return;
+    }
+    if (stillExists) {
+      hadCloudRecord = true;
     }
 
     renderLeaderboardTable();
-
+  } else {
+    setCloudStatus(false, res.error);
+    if (statusElem) {
+      statusElem.innerText = `OFFLINE (${res.error || 'Check Config'})`;
+      statusElem.style.color = '#ff3333';
+    }
+    renderLeaderboardTable();
   }
-
 }
 
 function setCloudStatus(online, detail = '') {
-
   isCloudOnline = online;
-
   const badge = document.getElementById('cloud-badge');
-
   if (!badge) return;
-
   if (online) {
-
     badge.className = 'cloud-status-badge cloud-online';
-
     badge.innerHTML = '● ONLINE';
-
   } else {
-
     badge.className = 'cloud-status-badge cloud-offline';
-
     badge.innerHTML = `▲ DB OFFLINE ${detail ? '(' + detail.slice(0, 10) + ')' : ''}`;
-
   }
-
 }
 
 /**
-
  * CLOUD CONFIGURATION MODAL (Operator Admin Panel Only)
-
  */
-
 function openCloudConfigModal() {
-
   const { url, key } = getSupabaseConfig();
-
   document.getElementById('cfg-supabase-url').value = url;
-
   document.getElementById('cfg-supabase-key').value = key;
-
   document.getElementById('cloud-modal').style.display = 'flex';
-
 }
 
 function closeCloudConfigModal() {
-
   document.getElementById('cloud-modal').style.display = 'none';
-
 }
 
 function saveCloudConfig() {
-
   const url = document.getElementById('cfg-supabase-url').value.trim();
-
   const key = document.getElementById('cfg-supabase-key').value.trim();
-
   if (url) localStorage.setItem(SUPABASE_URL_KEY, url);
-
   if (key) localStorage.setItem(SUPABASE_KEY_KEY, key);
-
   closeCloudConfigModal();
-
   sfxSwitch();
-
+  initSupabaseRealtime();
+  fetchCloudTournamentState();
+  fetchCloudVotesAndSync();
   fetchCloudLeaderboard();
-
 }
 
 /**
-
  * INITIAL SEEDED TEAMS
-
  */
-
 const SEEDED_TEAMS = [
-
   { seed: 1, name: "Knollas" },             /* [0] */
-
   { seed: 16, name: "Cici's" },             /* [1] */
-
   { seed: 8, name: "Picasso's" },           /* [2] */
-
   { seed: 9, name: "Old Chicago" },         /* [3] */
-
   { seed: 5, name: "Oak & Pie" },           /* [4] */
-
   { seed: 12, name: "Papa Johns" },         /* [5] */
-
   { seed: 4, name: "Ziggy's" },             /* [6] */
-
   { seed: 13, name: "Papa Murphy's" },      /* [7] */
-
   { seed: 6, name: "Gambino's" },           /* [8] */
-
   { seed: 11, name: "Dominoes" },           /* [9] */
-
   { seed: 3, name: "Casey's" },             /* [10] */
-
   { seed: 14, name: "Pizza Hut" },          /* [11] */
-
   { seed: 7, name: "Pizza Johns" },         /* [12] */
-
   { seed: 10, name: "Godfather's" },        /* [13] */
-
   { seed: 2, name: "Wichita Brewing Co" },  /* [14] */
-
   { seed: 15, name: "Pizza Ranch" }         /* [15] */
-
 ];
 
 /**
-
  * DEFAULT TOURNAMENT TREE
-
  */
-
 function createDefaultState() {
-
   return {
-
     activeStage: 1,
-
     champion: null,
-
     leaderboard: {},
-
     bouts: {
-
       'W1': { id: 'W1', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[0], t2: SEEDED_TEAMS[1], v1: 0, v2: 0, locked: false, winner: null },
-
       'W2': { id: 'W2', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[2], t2: SEEDED_TEAMS[3], v1: 0, v2: 0, locked: false, winner: null },
-
       'W3': { id: 'W3', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[4], t2: SEEDED_TEAMS[5], v1: 0, v2: 0, locked: false, winner: null },
-
       'W4': { id: 'W4', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[6], t2: SEEDED_TEAMS[7], v1: 0, v2: 0, locked: false, winner: null },
-
       'W5': { id: 'W5', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[8], t2: SEEDED_TEAMS[9], v1: 0, v2: 0, locked: false, winner: null },
-
       'W6': { id: 'W6', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[10], t2: SEEDED_TEAMS[11], v1: 0, v2: 0, locked: false, winner: null },
-
       'W7': { id: 'W7', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[12], t2: SEEDED_TEAMS[13], v1: 0, v2: 0, locked: false, winner: null },
-
       'W8': { id: 'W8', stage: 1, bracket: 'winners', round: 1, t1: SEEDED_TEAMS[14], t2: SEEDED_TEAMS[15], v1: 0, v2: 0, locked: false, winner: null },
-
       'W9':  { id: 'W9', stage: 2, bracket: 'winners', round: 2, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'W10': { id: 'W10', stage: 2, bracket: 'winners', round: 2, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'W11': { id: 'W11', stage: 2, bracket: 'winners', round: 2, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'W12': { id: 'W12', stage: 2, bracket: 'winners', round: 2, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'W13': { id: 'W13', stage: 3, bracket: 'winners', round: 3, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'W14': { id: 'W14', stage: 3, bracket: 'winners', round: 3, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'W15': { id: 'W15', stage: 4, bracket: 'winners', round: 4, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'L1': { id: 'L1', stage: 2, bracket: 'losers', round: 1, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'L2': { id: 'L2', stage: 2, bracket: 'losers', round: 1, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'L3': { id: 'L3', stage: 2, bracket: 'losers', round: 1, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'L4': { id: 'L4', stage: 2, bracket: 'losers', round: 1, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'L5': { id: 'L5', stage: 3, bracket: 'losers', round: 2, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'L6': { id: 'L6', stage: 3, bracket: 'losers', round: 2, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'L7': { id: 'L7', stage: 3, bracket: 'losers', round: 2, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'L8': { id: 'L8', stage: 3, bracket: 'losers', round: 2, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'L9':  { id: 'L9', stage: 4, bracket: 'losers', round: 3, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'L10': { id: 'L10', stage: 4, bracket: 'losers', round: 3, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'L11': { id: 'L11', stage: 5, bracket: 'losers', round: 4, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'L12': { id: 'L12', stage: 5, bracket: 'losers', round: 4, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'L13': { id: 'L13', stage: 6, bracket: 'losers', round: 5, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null },
-
       'GF': { id: 'GF', stage: 7, bracket: 'grand', round: 1, t1: null, t2: null, v1: 0, v2: 0, locked: true, winner: null }
-
     }
-
   };
-
 }
 
 let appState = loadState();
 
 function loadState() {
-
   const raw = localStorage.getItem(STORAGE_KEY);
-
   if (raw) {
-
     try {
-
       const parsed = JSON.parse(raw);
-
       if (!parsed.leaderboard) parsed.leaderboard = {};
-
       
-
       // Strict structural validation: ensure all 8 Stage 1 bouts have valid team objects and string names
-
       let isValid = true;
-
       for (let i = 1; i <= 8; i++) {
-
         const bout = parsed.bouts && parsed.bouts['W' + i];
-
         if (!bout || !bout.t1 || typeof bout.t1.name !== 'string' || !bout.t2 || typeof bout.t2.name !== 'string') {
-
           isValid = false;
-
           break;
-
         }
-
       }
-
       if (isValid) return parsed;
-
     } catch (e) {}
-
   }
-
   const defaultObj = createDefaultState();
-
   saveState(defaultObj, false);
-
   return defaultObj;
-
 }
 
 function saveState(state, broadcast = true) {
-
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-
   if (broadcast) {
-
     broadcastChannel.postMessage({ type: 'STATE_UPDATE', state });
-
   }
-
 }
 
 // Live Synchronizer across tabs
-
 broadcastChannel.onmessage = (event) => {
-
   if (event.data && event.data.type === 'STATE_UPDATE') {
-
     appState = event.data.state;
-
     renderBracket();
-
-    updateLeaderboardAndScore();
-
+    updateLeaderboardAndScore(false);
     if (document.getElementById('admin-overlay').style.display === 'flex') {
-
       renderAdminControls();
-
     }
-
   }
-
 };
 
 window.addEventListener('storage', (e) => {
-
   if (e.key === STORAGE_KEY && e.newValue) {
-
     appState = JSON.parse(e.newValue);
-
     renderBracket();
-
-    updateLeaderboardAndScore();
-
+    updateLeaderboardAndScore(false);
   }
-
 });
 
-// Periodic lightweight diff check
-
+// Periodic cloud & local sync fallback poll (ensures real-time updates even if WebSockets are blocked)
 setInterval(() => {
-
-  const stored = localStorage.getItem(STORAGE_KEY);
-
-  if (stored && JSON.stringify(appState) !== stored) {
-
-    appState = JSON.parse(stored);
-
-    renderBracket();
-
-    updateLeaderboardAndScore();
-
-  }
-
-}, 1500);
+  fetchCloudVotesAndSync();
+  fetchCloudLeaderboard();
+  fetchCloudTournamentState();
+}, 4000);
 
 /**
-
  * PLAYER IDENTITY & REGISTRATION POPUP
-
  */
-
 function checkPlayerIdentity() {
-
   const storedName = localStorage.getItem(PLAYER_NAME_KEY);
-
   if (!storedName) {
-
     promptPlayerNameModal();
-
   } else {
-
     document.getElementById('current-player-name').innerText = storedName.toUpperCase();
-
-    updateLeaderboardAndScore();
-
+    updateLeaderboardAndScore(true);
   }
-
 }
 
 function promptPlayerNameModal() {
-
   const stored = localStorage.getItem(PLAYER_NAME_KEY) || '';
-
   document.getElementById('player-name-input').value = stored;
-
   document.getElementById('player-modal').style.display = 'flex';
-
   setTimeout(() => document.getElementById('player-name-input').focus(), 50);
-
 }
 
 async function savePlayerName() {
-
   const raw = document.getElementById('player-name-input').value.trim();
-
   if (!raw) {
-
     sfxBuzz();
-
     alert("Name already in use. Please enter a new name. Keep it PG.");
-
     return;
-
   }
 
   const cleanName = raw.toUpperCase().replace(/[^A-Z0-9\-\'\s]/g, '');
-
   const userHash = await getUserIdentityHash();
-
   
+  // Refresh leaderboard before checking for conflicts
+  await fetchCloudLeaderboard();
 
   // Unique Username Guard: Validate username state against Supabase to avoid duplicates
-
   if (isCloudOnline || cloudLeaderboardData.length > 0) {
-
     const conflict = cloudLeaderboardData.find(row => 
-
       row.player_name.trim().toUpperCase() === cleanName && 
-
       row.user_hash !== userHash
-
     );
-
     if (conflict) {
-
       sfxBuzz();
-
       alert("ERROR: PILOT SIGNATURE REJECTED!\n\nTHAT USERNAME IS ALREADY ASSIGNED TO ANOTHER ARCADE CABINET. PLEASE CHOOSE A UNIQUE ID.");
-
       return;
-
     }
-
   }
 
   localStorage.setItem(PLAYER_NAME_KEY, cleanName);
-
   document.getElementById('current-player-name').innerText = cleanName;
-
   document.getElementById('player-modal').style.display = 'none';
-
   sfxFanfare();
-
-  updateLeaderboardAndScore();
-
+  await updateLeaderboardAndScore(true);
   renderBracket();
-
 }
 
 document.getElementById('player-name-input').addEventListener('keydown', (e) => {
-
   if (e.key === 'Enter') savePlayerName();
-
 });
 
 /**
-
  * CLIENT VOTE LEDGER WITH ROTATING SALTED HASHES
-
  */
-
 function getLocalVotesLedger() {
-
   try {
-
     return JSON.parse(localStorage.getItem(VOTE_STORAGE_KEY)) || {};
-
   } catch (e) {
-
     return {};
-
   }
-
 }
 
 function saveLocalVote(boutId, teamIndex, token, predictedTeam) {
-
   const ledger = getLocalVotesLedger();
-
   ledger[boutId] = {
-
     teamIndex,
-
     token,
-
     predictedTeamName: predictedTeam ? predictedTeam.name : '',
-
     predictedSeed: predictedTeam ? predictedTeam.seed : null
-
   };
-
   localStorage.setItem(VOTE_STORAGE_KEY, JSON.stringify(ledger));
-
-  updateLeaderboardAndScore();
-
+  updateLeaderboardAndScore(true);
 }
 
 /**
-
  * SCORING ENGINE: 10 POINTS PER CORRECT GUESS
-
  */
-
-function updateLeaderboardAndScore() {
-
+async function updateLeaderboardAndScore(pushToCloud = true) {
   const playerName = (localStorage.getItem(PLAYER_NAME_KEY) || '').trim().toUpperCase();
-
   if (!playerName) return;
 
   const ledger = getLocalVotesLedger();
-
   let correctCount = 0;
 
   // Evaluate matches where winner has been decided
-
   Object.values(appState.bouts).forEach(bout => {
-
     if (bout.winner && ledger[bout.id]) {
-
       const predSeed = ledger[bout.id].predictedSeed;
-
       if (predSeed === bout.winner.seed) {
-
         correctCount++;
-
       }
-
     }
-
   });
 
   const totalScore = correctCount * 10;
-
   document.getElementById('current-player-score').innerText = totalScore;
 
   // Sync to local fallback dictionary
-
   if (!appState.leaderboard) appState.leaderboard = {};
-
   appState.leaderboard[clientSecret] = {
-
     name: playerName,
-
     score: totalScore,
-
     correctCount: correctCount,
-
     lastUpdated: Date.now()
-
   };
 
   saveState(appState, true);
 
   // Sync to Supabase Cloud
-
-  syncUserScoreToCloud(totalScore, correctCount);
-
+  if (pushToCloud) {
+    await syncUserScoreToCloud(totalScore, correctCount);
+  }
 }
 
 function renderLeaderboardTable() {
-
   const tbody = document.getElementById('leaderboard-tbody');
-
   if (!tbody) return;
-
   tbody.innerHTML = '';
 
   const activeUser = (localStorage.getItem(PLAYER_NAME_KEY) || '').trim().toUpperCase();
-
   let entries = [];
 
   if (cloudLeaderboardData.length > 0) {
-
     // Cloud entries
-
     entries = cloudLeaderboardData.map(row => ({
-
       name: row.player_name,
-
       score: row.score || 0,
-
       correctCount: row.correct_picks || 0
-
     }));
-
   } else {
-
     // Local fallback
-
     entries = Object.values(appState.leaderboard || {}).map(p => ({
-
       name: p.name,
-
       score: p.score,
-
       correctCount: p.correctCount
-
     }));
-
   }
 
   // Sort descending by score, then by correct picks, then by name
-
   entries.sort((a, b) => (b.score - a.score) || (b.correctCount - a.correctCount) || a.name.localeCompare(b.name));
 
   if (entries.length === 0) {
-
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 25px; color: #888;">NO PREDICTIONS RECORDED YET. CAST YOUR VOTES TO JOIN THE HALL OF FAME!</td></tr>`;
-
     return;
-
   }
 
   entries.forEach((player, idx) => {
-
     const rank = idx + 1;
-
     let rankClass = '';
-
     let crown = '';
-
     if (rank === 1) { rankClass = 'rank-1'; crown = ' 👑'; }
-
     else if (rank === 2) { rankClass = 'rank-2'; crown = ' ★'; }
-
     else if (rank === 3) { rankClass = 'rank-3'; crown = ' ♦'; }
 
     const isCurrent = (player.name === activeUser);
-
     const row = document.createElement('tr');
-
     if (isCurrent) row.className = 'current-user-row';
 
     row.innerHTML = `
-
       <td class="rank-col ${rankClass}">#${rank}${crown}</td>
-
       <td><strong>${player.name}</strong> ${isCurrent ? '<span style="font-size:0.55rem; color:var(--neon-green);">(YOU)</span>' : ''}</td>
-
       <td style="text-align: center; color: var(--neon-cyan); font-family: 'VT323'; font-size: 1.4rem;">${player.correctCount}</td>
-
       <td style="text-align: right; color: var(--neon-yellow); font-family: 'VT323'; font-size: 1.6rem; font-weight: bold;">${player.score} PTS</td>
-
     `;
-
     tbody.appendChild(row);
-
   });
-
 }
 
 /**
-
  * VOTE CASTING & CONFIRMATION
-
  */
-
 let pendingVoteChange = null;
 
 async function handleVoteClick(boutId, teamIndex) {
-
   const storedName = localStorage.getItem(PLAYER_NAME_KEY);
-
   if (!storedName) {
-
     promptPlayerNameModal();
-
     return;
-
   }
 
   const bout = appState.bouts[boutId];
-
   if (!bout || bout.locked) return;
 
   const ledger = getLocalVotesLedger();
-
   const existingVote = ledger[boutId];
-
   const expectedToken = await generateBoutSaltedHash(boutId);
 
   // If already voted for this same team, ignore
-
   if (existingVote && existingVote.token === expectedToken && existingVote.teamIndex === teamIndex) {
-
     sfxBuzz();
-
     return;
-
   }
 
   // If user already voted for the opposing team, prompt confirmation
-
   if (existingVote && existingVote.token === expectedToken && existingVote.teamIndex !== teamIndex) {
-
     const prevTeamName = existingVote.teamIndex === 1 ? (bout.t1?.name || "Team 1") : (bout.t2?.name || "Team 2");
-
     const newTeamName = teamIndex === 1 ? (bout.t1?.name || "Team 1") : (bout.t2?.name || "Team 2");
-
     const chosenTeam = teamIndex === 1 ? bout.t1 : bout.t2;
 
     pendingVoteChange = { boutId, teamIndex, prevTeamIndex: existingVote.teamIndex, expectedToken, chosenTeam };
-
     document.getElementById('confirm-modal-text').innerText = 
-
       `You previously predicted "${prevTeamName}". Would you like to switch your prediction to "${newTeamName}"?`;
-
     document.getElementById('confirm-modal').style.display = 'flex';
-
     sfxSwitch();
-
     return;
-
   }
 
   // First-time vote on this bout
-
   if (teamIndex === 1) bout.v1++;
-
   else bout.v2++;
 
   const chosenTeam = teamIndex === 1 ? bout.t1 : bout.t2;
-
   saveLocalVote(boutId, teamIndex, expectedToken, chosenTeam);
-
   saveState(appState);
-
   sfxCoin();
-
   renderBracket();
 
+  // Persist vote to Supabase and auto-update all clients
+  await syncVoteToCloud(boutId, bout.stage, teamIndex, chosenTeam);
 }
 
-document.getElementById('confirm-switch-btn').addEventListener('click', () => {
-
+document.getElementById('confirm-switch-btn').addEventListener('click', async () => {
   if (!pendingVoteChange) return;
-
   const { boutId, teamIndex, prevTeamIndex, expectedToken, chosenTeam } = pendingVoteChange;
-
   const bout = appState.bouts[boutId];
-
-  if (bout && !bout.locked) {
-
-    if (prevTeamIndex === 1 && bout.v1 > 0) bout.v1--;
-
-    if (prevTeamIndex === 2 && bout.v2 > 0) bout.v2--;
-
-    if (teamIndex === 1) bout.v1++;
-
-    if (teamIndex === 2) bout.v2++;
-
-    saveLocalVote(boutId, teamIndex, expectedToken, chosenTeam);
-
-    saveState(appState);
-
-    sfxCoin();
-
-    renderBracket();
-
-  }
 
   closeConfirmModal();
 
+  if (bout && !bout.locked) {
+    if (prevTeamIndex === 1 && bout.v1 > 0) bout.v1--;
+    if (prevTeamIndex === 2 && bout.v2 > 0) bout.v2--;
+    if (teamIndex === 1) bout.v1++;
+    if (teamIndex === 2) bout.v2++;
+
+    saveLocalVote(boutId, teamIndex, expectedToken, chosenTeam);
+    saveState(appState);
+    sfxCoin();
+    renderBracket();
+
+    // Update switched vote in Supabase and broadcast to all connected clients
+    await syncVoteToCloud(boutId, bout.stage, teamIndex, chosenTeam);
+  }
 });
 
 function closeConfirmModal() {
-
   pendingVoteChange = null;
-
   document.getElementById('confirm-modal').style.display = 'none';
-
 }
 
 /**
-
  * BRACKET RENDERING ENGINE
-
  */
-
 async function renderBracket() {
-
   const ledger = getLocalVotesLedger();
-
   let totalVotesCount = 0;
-
   let activeBoutsInRoundCount = 0;
-
   let userVotesInActiveRoundCount = 0;
 
   const stageTitles = {
-
     1: 'ROUND 1', 2: 'QUARTERFINALS', 3: 'SEMIFINALS', 
-
     4: 'ROUND 4', 5: 'ROUND 5', 6: 'LOSERS FINAL', 7: 'GRAND FINALS'
-
   };
-
   document.getElementById('current-stage-title').innerText = stageTitles[appState.activeStage] || `STAGE ${appState.activeStage}`;
 
   // Champion marquee
-
   if (appState.champion) {
-
     document.getElementById('champion-name').innerText = appState.champion.name;
-
     document.getElementById('champion-marquee').style.display = 'block';
-
   } else {
-
     document.getElementById('champion-marquee').style.display = 'none';
-
   }
 
-  // Count total votes across all bouts
-
+  // Count total votes for the current active round so everyone sees the current round's total ballots
   Object.values(appState.bouts).forEach(b => {
-
-    totalVotesCount += (b.v1 + b.v2);
-
+    if (b.stage === appState.activeStage) {
+      totalVotesCount += (b.v1 + b.v2);
+    }
   });
-
   document.getElementById('total-ballots').innerText = totalVotesCount;
 
   // Render individual bout elements
-
   for (const bout of Object.values(appState.bouts)) {
-
     const isGreyed = (bout.stage > appState.activeStage);
-
     const isBoutActive = (bout.stage === appState.activeStage && !bout.locked && (bout.t1 || bout.t2));
 
     if (isBoutActive) {
-
       activeBoutsInRoundCount++;
-
     }
 
     // Check user vote status with salted hash verification
-
     const expectedToken = await generateBoutSaltedHash(bout.id);
-
     const hasVoted = ledger[bout.id] && ledger[bout.id].token === expectedToken;
-
     const votedTeamIndex = hasVoted ? ledger[bout.id].teamIndex : null;
 
     // Check if user predicted correctly
-
     let predictionAwardedHtml = '';
-
     if (bout.winner && hasVoted) {
-
       const predSeed = ledger[bout.id].predictedSeed;
-
       if (predSeed === bout.winner.seed) {
-
         predictionAwardedHtml = '<span class="points-awarded-badge">+10 PTS ✔</span>';
-
       }
-
     }
 
     if (isBoutActive && hasVoted) {
-
       userVotesInActiveRoundCount++;
-
     }
 
     const html = `
-
       <div class="bout-card ${bout.locked ? 'locked-bout' : ''} ${isGreyed ? 'greyed-out' : ''}" id="bout-card-${bout.id}">
-
         <div class="bout-header-bar">
-
           <span>BOUT [${bout.id}] ${predictionAwardedHtml}</span>
-
           <span>${bout.locked ? '<span class="locked-badge">LOCKED</span>' : '<span class="open-badge">OPEN</span>'}</span>
-
         </div>
-
         <!-- Team 1 Slot -->
-
         <div class="team-slot ${bout.winner && bout.winner.seed === bout.t1?.seed ? 'winner-slot' : ''}">
-
           <div class="team-info">
-
             <span class="seed-badge">${bout.t1 ? '#' + bout.t1.seed : '--'}</span>
-
             <span class="team-name" title="${bout.t1 ? bout.t1.name : 'TBD'}">${bout.t1 ? bout.t1.name : 'TBD'}</span>
-
           </div>
-
           <div class="action-col">
-
             <span class="vote-count" id="count-${bout.id}-1">${bout.v1}</span>
-
             <button 
-
               class="vote-btn ${votedTeamIndex === 1 ? 'has-voted' : ''}" 
-
               onclick="handleVoteClick('${bout.id}', 1)"
-
               ${bout.locked || !bout.t1 || isGreyed ? 'disabled' : ''}>
-
               ${votedTeamIndex === 1 ? 'VOTED' : 'VOTE'}
-
             </button>
-
           </div>
-
         </div>
-
         <div class="vs-badge">- VS -</div>
-
         <!-- Team 2 Slot -->
-
         <div class="team-slot ${bout.winner && bout.winner.seed === bout.t2?.seed ? 'winner-slot' : ''}">
-
           <div class="team-info">
-
             <span class="seed-badge">${bout.t2 ? '#' + bout.t2.seed : '--'}</span>
-
             <span class="team-name" title="${bout.t2 ? bout.t2.name : 'TBD'}">${bout.t2 ? bout.t2.name : 'TBD'}</span>
-
           </div>
-
           <div class="action-col">
-
             <span class="vote-count" id="count-${bout.id}-2">${bout.v2}</span>
-
             <button 
-
               class="vote-btn ${votedTeamIndex === 2 ? 'has-voted' : ''}" 
-
               onclick="handleVoteClick('${bout.id}', 2)"
-
               ${bout.locked || !bout.t2 || isGreyed ? 'disabled' : ''}>
-
               ${votedTeamIndex === 2 ? 'VOTED' : 'VOTE'}
-
             </button>
-
           </div>
-
         </div>
-
       </div>
-
     `;
 
     const targetContainer = getBoutContainer(bout);
-
     if (targetContainer) {
-
       const existing = targetContainer.querySelector(`#bout-card-${bout.id}`);
-
       if (!existing) {
-
         targetContainer.insertAdjacentHTML('beforeend', html);
-
       } else {
-
         existing.outerHTML = html;
-
       }
-
     }
-
   }
 
   // Update Dynamic Credits Counter
-
   const remainingCredits = Math.max(0, activeBoutsInRoundCount - userVotesInActiveRoundCount);
-
   document.getElementById('user-credits').innerText = remainingCredits;
-
 }
 
 function getBoutContainer(bout) {
-
   if (bout.bracket === 'winners') {
-
     return document.getElementById(`winners-round-${bout.round}`);
-
   } else if (bout.bracket === 'losers') {
-
     return document.getElementById(`losers-round-${bout.round}`);
-
   } else if (bout.bracket === 'grand') {
-
     return document.getElementById('grand-finals-bout');
-
   }
-
   return null;
-
 }
 
 /**
-
- * DOUBLE ELIMINATION ADVANCEMENT ENGINE
-
+ * DOUBLE ELIMINATION ADVANCEMENT ENGINE (BASED ON HIGHER SUPABASE VOTE COUNT)
  */
-
-function advanceCurrentStage() {
+async function advanceCurrentStage() {
+  // Always pull the latest live vote counts from Supabase before determining bout winners
+  await fetchCloudVotesAndSync();
 
   const stage = appState.activeStage;
-
   sfxCoin();
 
   if (stage === 1) {
-
     const w1_w = getWinner(appState.bouts['W1']);
-
     const w1_l = getLoser(appState.bouts['W1']);
-
     const w2_w = getWinner(appState.bouts['W2']);
-
     const w2_l = getLoser(appState.bouts['W2']);
-
     const w3_w = getWinner(appState.bouts['W3']);
-
     const w3_l = getLoser(appState.bouts['W3']);
-
     const w4_w = getWinner(appState.bouts['W4']);
-
     const w4_l = getLoser(appState.bouts['W4']);
-
     const w5_w = getWinner(appState.bouts['W5']);
-
     const w5_l = getLoser(appState.bouts['W5']);
-
     const w6_w = getWinner(appState.bouts['W6']);
-
     const w6_l = getLoser(appState.bouts['W6']);
-
     const w7_w = getWinner(appState.bouts['W7']);
-
     const w7_l = getLoser(appState.bouts['W7']);
-
     const w8_w = getWinner(appState.bouts['W8']);
-
     const w8_l = getLoser(appState.bouts['W8']);
 
     populateBout('W9', w1_w, w2_w);
-
     populateBout('W10', w3_w, w4_w);
-
     populateBout('W11', w5_w, w6_w);
-
     populateBout('W12', w7_w, w8_w);
 
     populateBout('L1', w1_l, w2_l);
-
     populateBout('L2', w3_l, w4_l);
-
     populateBout('L3', w5_l, w6_l);
-
     populateBout('L4', w7_l, w8_l);
 
     lockBouts(['W1','W2','W3','W4','W5','W6','W7','W8']);
-
     unlockBouts(['W9','W10','W11','W12','L1','L2','L3','L4']);
-
     appState.activeStage = 2;
 
   } else if (stage === 2) {
-
     const w9_w = getWinner(appState.bouts['W9']);
-
     const w9_l = getLoser(appState.bouts['W9']);
-
     const w10_w = getWinner(appState.bouts['W10']);
-
     const w10_l = getLoser(appState.bouts['W10']);
-
     const w11_w = getWinner(appState.bouts['W11']);
-
     const w11_l = getLoser(appState.bouts['W11']);
-
     const w12_w = getWinner(appState.bouts['W12']);
-
     const w12_l = getLoser(appState.bouts['W12']);
 
     const l1_w = getWinner(appState.bouts['L1']);
-
     const l2_w = getWinner(appState.bouts['L2']);
-
     const l3_w = getWinner(appState.bouts['L3']);
-
     const l4_w = getWinner(appState.bouts['L4']);
 
     populateBout('W13', w9_w, w10_w);
-
     populateBout('W14', w11_w, w12_w);
 
     populateBout('L5', l1_w, w12_l);
-
     populateBout('L6', l2_w, w11_l);
-
     populateBout('L7', l3_w, w10_l);
-
     populateBout('L8', l4_w, w9_l);
 
     lockBouts(['W9','W10','W11','W12','L1','L2','L3','L4']);
-
     unlockBouts(['W13','W14','L5','L6','L7','L8']);
-
     appState.activeStage = 3;
 
   } else if (stage === 3) {
-
     const w13_w = getWinner(appState.bouts['W13']);
-
     const w14_w = getWinner(appState.bouts['W14']);
-
     const l5_w = getWinner(appState.bouts['L5']);
-
     const l6_w = getWinner(appState.bouts['L6']);
-
     const l7_w = getWinner(appState.bouts['L7']);
-
     const l8_w = getWinner(appState.bouts['L8']);
 
     populateBout('W15', w13_w, w14_w);
-
     populateBout('L9', l5_w, l6_w);
-
     populateBout('L10', l7_w, l8_w);
 
     lockBouts(['W13','W14','L5','L6','L7','L8']);
-
     unlockBouts(['W15','L9','L10']);
-
     appState.activeStage = 4;
 
   } else if (stage === 4) {
-
     const w13_l = getLoser(appState.bouts['W13']);
-
     const w14_l = getLoser(appState.bouts['W14']);
-
     const l9_w = getWinner(appState.bouts['L9']);
-
     const l10_w = getWinner(appState.bouts['L10']);
 
     populateBout('L11', l9_w, w14_l);
-
     populateBout('L12', l10_w, w13_l);
 
     lockBouts(['W15','L9','L10']);
-
     unlockBouts(['L11','L12']);
-
     appState.activeStage = 5;
 
   } else if (stage === 5) {
-
     const l11_w = getWinner(appState.bouts['L11']);
-
     const l12_w = getWinner(appState.bouts['L12']);
-
     const w15_l = getLoser(appState.bouts['W15']);
 
     populateBout('L13', l11_w, l12_w);
 
     lockBouts(['L11','L12']);
-
     unlockBouts(['L13']);
-
     appState.activeStage = 6;
 
   } else if (stage === 6) {
-
     const w15_w = getWinner(appState.bouts['W15']);
-
     const l13_w = getWinner(appState.bouts['L13']);
 
     populateBout('GF', w15_w, l13_w);
 
     lockBouts(['L13']);
-
     unlockBouts(['GF']);
-
     appState.activeStage = 7;
 
   } else if (stage === 7) {
-
     const champ = getWinner(appState.bouts['GF']);
-
     appState.champion = champ;
-
     lockBouts(['GF']);
-
     sfxFanfare();
-
     alert(`★ CONGRATULATIONS TO ${champ ? champ.name : 'THE WINNER'}! CHAMPION OF 127 COS PIZZA WARS '26! ★`);
-
   }
 
   saveState(appState);
-
-  updateLeaderboardAndScore();
-
+  await syncTournamentStateToCloud();
+  await recalculateAllCloudPlayerScores();
+  await updateLeaderboardAndScore(true);
   renderBracket();
-
   renderAdminControls();
-
 }
 
+// Determines winner strictly by the higher total vote count (v1 vs v2)
 function getWinner(bout) {
-
   if (!bout.t1 && !bout.t2) return null;
-
   if (!bout.t1) return bout.t2;
-
   if (!bout.t2) return bout.t1;
-
   const win = (bout.v1 >= bout.v2) ? bout.t1 : bout.t2;
-
   bout.winner = win;
-
   return win;
-
 }
 
 function getLoser(bout) {
-
   if (!bout.t1 || !bout.t2) return null;
-
   return (bout.v1 >= bout.v2) ? bout.t2 : bout.t1;
-
 }
 
 function populateBout(boutId, team1, team2) {
-
   const b = appState.bouts[boutId];
-
   if (b) {
-
     b.t1 = team1;
-
     b.t2 = team2;
-
     b.v1 = 0;
-
     b.v2 = 0;
-
   }
-
 }
 
 function lockBouts(ids) {
-
   ids.forEach(id => {
-
     if (appState.bouts[id]) appState.bouts[id].locked = true;
-
   });
-
 }
 
 function unlockBouts(ids) {
-
   ids.forEach(id => {
-
     if (appState.bouts[id]) appState.bouts[id].locked = false;
-
   });
-
 }
 
 /**
-
  * CRYPTOGRAPHIC ONE-WAY PASSWORD AUTHENTICATION
-
  */
-
 const AUTH_SALT = "COS127_PIZZA_WARS_SALT_2026";
-
 const EXPECTED_HASH = "f58b9b3d0fef5ea0c90bc816b8f55b2a2e7a4bdd7fdf91f5ef10f0efef24913d";
 
 function requestAdminAuth() {
-
   document.getElementById('admin-password-input').value = '';
-
   document.getElementById('auth-error').style.display = 'none';
-
   document.getElementById('auth-modal').style.display = 'flex';
-
   document.getElementById('admin-password-input').focus();
-
 }
 
 function closeAuthModal() {
-
   document.getElementById('auth-modal').style.display = 'none';
-
 }
 
 async function verifyAdminPassword() {
-
   const input = (document.getElementById('admin-password-input').value || '').trim();
-
   const computedHash = await sha256(AUTH_SALT + input);
 
   if (computedHash === EXPECTED_HASH) {
-
     closeAuthModal();
-
     openAdminDrawer();
-
     sfxCoin();
-
   } else {
-
     document.getElementById('auth-error').style.display = 'block';
-
     sfxBuzz();
-
   }
-
 }
 
 document.getElementById('admin-password-input').addEventListener('keydown', (e) => {
-
   if (e.key === 'Enter') verifyAdminPassword();
-
   if (e.key === 'Escape') closeAuthModal();
-
 });
 
 function openAdminDrawer() {
-
   renderAdminControls();
-
   document.getElementById('admin-overlay').style.display = 'flex';
-
 }
 
 function closeAdmin() {
-
   document.getElementById('admin-overlay').style.display = 'none';
-
 }
 
 function renderAdminControls() {
-
   const container = document.getElementById('admin-bout-controls');
-
   container.innerHTML = '';
 
   Object.values(appState.bouts).forEach(bout => {
-
     const t1Name = bout.t1 ? `#${bout.t1.seed} ${bout.t1.name}` : 'TBD';
-
     const t2Name = bout.t2 ? `#${bout.t2.seed} ${bout.t2.name}` : 'TBD';
 
     const row = document.createElement('div');
-
     row.className = 'admin-bout-row';
-
     row.innerHTML = `
-
       <div>
-
         <strong style="color:var(--neon-yellow);">[${bout.id}]</strong> 
-
         <span>${t1Name} vs ${t2Name}</span>
-
         <span style="color:var(--neon-cyan); margin-left: 10px;">(${bout.v1} - ${bout.v2})</span>
-
       </div>
-
       <div>
-
         <button class="toggle-lock-btn ${bout.locked ? 'is-locked' : 'is-unlocked'}" onclick="toggleSingleBout('${bout.id}')">
-
           ${bout.locked ? 'LOCKED' : 'UNLOCKED'}
-
         </button>
-
       </div>
-
     `;
-
     container.appendChild(row);
-
   });
-
 }
 
-function toggleSingleBout(id) {
-
+async function toggleSingleBout(id) {
   const b = appState.bouts[id];
-
   if (b) {
-
     b.locked = !b.locked;
-
     saveState(appState);
-
+    await syncTournamentStateToCloud();
     renderAdminControls();
-
     renderBracket();
-
     sfxSwitch();
-
   }
-
 }
 
-function toggleAllBouts(lockState) {
-
+async function toggleAllBouts(lockState) {
   Object.values(appState.bouts).forEach(b => b.locked = lockState);
-
   saveState(appState);
-
+  await syncTournamentStateToCloud();
   renderAdminControls();
-
   renderBracket();
-
   sfxSwitch();
-
 }
 
-function resetTournamentPrompt() {
-
+async function resetTournamentPrompt() {
   if (confirm("DANGER: RESET ENTIRE TOURNAMENT TREE, VOTES, AND HIGH SCORES?")) {
-
     appState = createDefaultState();
-
     localStorage.removeItem(VOTE_STORAGE_KEY);
-
     saveState(appState);
 
-    updateLeaderboardAndScore();
+    // Clear all votes & reset scores in Supabase
+    await executeSupabaseRest('pizza_wars_votes?id=gt.0', 'DELETE');
+    await executeSupabaseRest('pizza_wars_scores?score=gte.0', 'PATCH', { score: 0, correct_picks: 0 });
+    await syncTournamentStateToCloud();
 
+    await fetchCloudVotesAndSync();
+    await updateLeaderboardAndScore(true);
     renderAdminControls();
-
     renderBracket();
-
     sfxBuzz();
-
   }
-
 }
 
 /**
-
  * VIEW SWITCHING & FULL BRACKET MODE
-
  */
-
 function switchView(viewName) {
-
   const winnersView = document.getElementById('winners-view');
-
   const losersView = document.getElementById('losers-view');
-
   const grandView = document.getElementById('grand-view');
-
   const leaderView = document.getElementById('leaderboard-view');
-
   const fullToolbar = document.getElementById('full-bracket-toolbar');
-
   const dividerTitles = document.querySelectorAll('.section-divider-title');
 
   // Clear tab active states
-
   document.querySelectorAll('.tab-btn').forEach(b => {
-
     if (!b.classList.contains('admin-trigger-btn') && !b.classList.contains('fullscreen-btn')) {
-
       b.classList.remove('active');
-
     }
-
   });
 
   // Reset display flags
-
   fullToolbar.style.display = 'none';
-
   dividerTitles.forEach(el => el.style.display = 'none');
-
   winnersView.classList.remove('active-view');
-
   losersView.classList.remove('active-view');
-
   grandView.classList.remove('active-view');
-
   leaderView.classList.remove('active-view');
 
   if (viewName === 'all') {
-
     winnersView.classList.add('active-view');
-
     losersView.classList.add('active-view');
-
     grandView.classList.add('active-view');
-
     fullToolbar.style.display = 'flex';
-
     dividerTitles.forEach(el => el.style.display = 'block');
-
     document.getElementById('tab-all').classList.add('active');
-
   } else if (viewName === 'winners') {
-
     winnersView.classList.add('active-view');
-
     document.getElementById('tab-winners').classList.add('active');
-
   } else if (viewName === 'losers') {
-
     losersView.classList.add('active-view');
-
     document.getElementById('tab-losers').classList.add('active');
-
   } else if (viewName === 'grand') {
-
     grandView.classList.add('active-view');
-
     document.getElementById('tab-grand').classList.add('active');
-
   } else if (viewName === 'leaderboard') {
-
     leaderView.classList.add('active-view');
-
     document.getElementById('tab-leaderboard').classList.add('active');
-
     fetchCloudLeaderboard();
-
   }
 
   sfxSwitch();
-
 }
 
 /**
-
  * ZOOM & FULLSCREEN ENGINE
-
  */
-
 function setBracketZoom(zoomLevel) {
-
   const wrapper = document.getElementById('zoomable-bracket-wrapper');
-
   if (wrapper) {
-
     wrapper.style.transform = `scale(${zoomLevel})`;
-
   }
-
   document.querySelectorAll('.zoom-btn').forEach(b => b.classList.remove('active-zoom'));
-
   if (event && event.target && event.target.classList.contains('zoom-btn')) {
-
     event.target.classList.add('active-zoom');
-
   }
-
   sfxSwitch();
-
 }
 
 function toggleFullscreen() {
-
   if (!document.fullscreenElement) {
-
     if (document.documentElement.requestFullscreen) {
-
       document.documentElement.requestFullscreen().catch(() => {});
-
     }
-
   } else {
-
     if (document.exitFullscreen) {
-
       document.exitFullscreen();
-
     }
-
   }
-
   sfxCoin();
-
 }
 
 document.addEventListener('fullscreenchange', () => {
-
   const fsBtn = document.getElementById('fullscreen-toggle-btn');
-
   if (fsBtn) {
-
     if (document.fullscreenElement) {
-
       fsBtn.innerText = 'EXIT FULLSCREEN ⛶';
-
       fsBtn.style.background = 'var(--neon-green)';
-
       fsBtn.style.color = '#000';
-
     } else {
-
       fsBtn.innerText = 'FULLSCREEN ⛶';
-
       fsBtn.style.background = '#000';
-
       fsBtn.style.color = 'var(--neon-green)';
-
     }
-
   }
-
 });
 
 // Initialization
-
-checkPlayerIdentity();
-
-renderBracket();
-
-fetchCloudLeaderboard();
-
+async function initApp() {
+  initSupabaseRealtime();
+  await fetchCloudTournamentState();
+  await fetchCloudVotesAndSync();
+  await fetchCloudLeaderboard();
+  checkPlayerIdentity();
+  renderBracket();
+}
+initApp();
 </script>
-
 </body>
-
 </html>
