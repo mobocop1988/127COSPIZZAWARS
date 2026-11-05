@@ -941,7 +941,6 @@
     <button class="tab-btn admin-trigger-btn" onclick="requestAdminAuth()">OPERATOR / ADMIN PANEL</button>
   </div>
 
-  <!-- Full Bracket Quick Controls (Active in Full View) -->
   <div class="full-bracket-toolbar" id="full-bracket-toolbar">
     <div class="toolbar-group">
       <span class="toolbar-label">JUMP TO:</span>
@@ -1252,6 +1251,7 @@ let cloudVotesData = [];
 let isCloudOnline = false;
 let supabaseClient = null;
 let realtimeChannel = null;
+let isSyncingVote = false;
 
 function initSupabaseRealtime() {
   const { url, key } = getSupabaseConfig();
@@ -1266,7 +1266,7 @@ function initSupabaseRealtime() {
     realtimeChannel = supabaseClient
       .channel('pizza-wars-realtime-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pizza_wars_votes' }, () => {
-        fetchCloudVotesAndSync();
+        if (!isSyncingVote) fetchCloudVotesAndSync();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pizza_wars_scores' }, async (payload) => {
         const myName = localStorage.getItem(PLAYER_NAME_KEY);
@@ -1278,7 +1278,7 @@ function initSupabaseRealtime() {
           }
         }
         fetchCloudLeaderboard();
-        fetchCloudVotesAndSync();
+        if (!isSyncingVote) fetchCloudVotesAndSync();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pizza_wars_state' }, () => {
         fetchCloudTournamentState();
@@ -1304,7 +1304,7 @@ function clearDeletedUserInformation() {
   document.getElementById('current-player-name').innerText = '---';
   document.getElementById('current-player-score').innerText = '0';
 
-  fetchCloudVotesAndSync();
+  fetchCloudVotesAndSync(true);
   fetchCloudLeaderboard();
   promptPlayerNameModal();
 }
@@ -1341,8 +1341,11 @@ async function executeSupabaseRest(endpoint, method = 'GET', body = null) {
   }
 }
 
-// Fetch all votes from Supabase and update bout totals + user's ledger
-async function fetchCloudVotesAndSync() {
+/**
+ * FETCH CLOUD VOTES & TALLY BOUT COUNTS ACCURATELY
+ * Includes fallback counting for local votes if cloud write is still in progress
+ */
+async function fetchCloudVotesAndSync(forceOverwriteLocal = false) {
   const res = await executeSupabaseRest('pizza_wars_votes?select=*');
   if (!res.success || !Array.isArray(res.data)) return;
 
@@ -1357,17 +1360,21 @@ async function fetchCloudVotesAndSync() {
 
   const localLedger = getLocalVotesLedger();
   const rebuiltLedger = {};
+  const cloudVotedBoutsForCurrentUser = new Set();
 
   for (const row of cloudVotesData) {
     const bout = appState.bouts[row.bout_id];
+    const tIdx = Number(row.team_index);
     if (bout) {
-      if (row.team_index === 1) bout.v1++;
-      else if (row.team_index === 2) bout.v2++;
+      if (tIdx === 1) bout.v1++;
+      else if (tIdx === 2) bout.v2++;
     }
-    if (activeName && (row.player_name.trim().toUpperCase() === activeName || row.user_hash === myHash)) {
+    const rowName = (row.player_name || '').trim().toUpperCase();
+    if (activeName && (rowName === activeName || row.user_hash === myHash)) {
+      cloudVotedBoutsForCurrentUser.add(row.bout_id);
       const expectedToken = await generateBoutSaltedHash(row.bout_id);
       rebuiltLedger[row.bout_id] = {
-        teamIndex: row.team_index,
+        teamIndex: tIdx,
         token: expectedToken,
         predictedTeamName: row.predicted_team_name || '',
         predictedSeed: row.predicted_seed
@@ -1375,12 +1382,23 @@ async function fetchCloudVotesAndSync() {
     }
   }
 
-  // Preserve any local uncommitted votes so user vote doesn't disappear if latency occurs
-  Object.keys(localLedger).forEach(k => {
-    if (!rebuiltLedger[k]) {
-      rebuiltLedger[k] = localLedger[k];
+  // If user has a local vote that hasn't finished writing to Supabase yet, preserve BOTH the ledger AND the bout vote count!
+  if (!forceOverwriteLocal && activeName) {
+    for (const boutId of Object.keys(localLedger)) {
+      if (!cloudVotedBoutsForCurrentUser.has(boutId)) {
+        const localVote = localLedger[boutId];
+        const expectedToken = await generateBoutSaltedHash(boutId);
+        if (localVote && localVote.token === expectedToken) {
+          rebuiltLedger[boutId] = localVote;
+          const bout = appState.bouts[boutId];
+          if (bout) {
+            if (Number(localVote.teamIndex) === 1) bout.v1++;
+            else if (Number(localVote.teamIndex) === 2) bout.v2++;
+          }
+        }
+      }
     }
-  });
+  }
 
   localStorage.setItem(VOTE_STORAGE_KEY, JSON.stringify(rebuiltLedger));
   saveState(appState, false);
@@ -1390,39 +1408,56 @@ async function fetchCloudVotesAndSync() {
   }
 }
 
-// Push a single vote to Supabase pizza_wars_votes table (guaranteed PATCH or POST)
+/**
+ * SYNC SINGLE VOTE TO SUPABASE
+ */
 async function syncVoteToCloud(boutId, stage, teamIndex, predictedTeam) {
   const playerName = (localStorage.getItem(PLAYER_NAME_KEY) || '').trim().toUpperCase();
   if (!playerName) return;
 
-  const userHash = await getUserIdentityHash(playerName);
-  const payload = {
-    player_name: playerName,
-    user_hash: userHash,
-    bout_id: boutId,
-    stage: stage,
-    team_index: teamIndex,
-    predicted_seed: predictedTeam ? predictedTeam.seed : null,
-    predicted_team_name: predictedTeam ? predictedTeam.name : '',
-    updated_at: new Date().toISOString()
-  };
+  isSyncingVote = true;
+  try {
+    // 1. Ensure user score record exists with current user_hash first
+    await syncUserScoreToCloud(0, 0, true);
 
-  // Check if this player already has a record for this bout in pizza_wars_votes
-  const checkRes = await executeSupabaseRest(`pizza_wars_votes?player_name=eq.${encodeURIComponent(playerName)}&bout_id=eq.${encodeURIComponent(boutId)}&select=id`);
+    const userHash = await getUserIdentityHash(playerName);
+    const payload = {
+      player_name: playerName,
+      user_hash: userHash,
+      bout_id: boutId,
+      stage: Number(stage),
+      team_index: Number(teamIndex),
+      predicted_seed: predictedTeam ? Number(predictedTeam.seed) : null,
+      predicted_team_name: predictedTeam ? predictedTeam.name : '',
+      updated_at: new Date().toISOString()
+    };
 
-  if (checkRes.success && Array.isArray(checkRes.data) && checkRes.data.length > 0) {
-    // Update existing vote in place
-    await executeSupabaseRest(
-      `pizza_wars_votes?player_name=eq.${encodeURIComponent(playerName)}&bout_id=eq.${encodeURIComponent(boutId)}`,
-      'PATCH',
-      payload
+    // 2. Check if this user already voted on this bout (by player_name OR user_hash)
+    const checkByName = await executeSupabaseRest(
+      `pizza_wars_votes?player_name=eq.${encodeURIComponent(playerName)}&bout_id=eq.${encodeURIComponent(boutId)}&select=id`
     );
-  } else {
-    // Insert new vote
-    await executeSupabaseRest('pizza_wars_votes', 'POST', payload);
+
+    if (checkByName.success && Array.isArray(checkByName.data) && checkByName.data.length > 0) {
+      await executeSupabaseRest(
+        `pizza_wars_votes?player_name=eq.${encodeURIComponent(playerName)}&bout_id=eq.${encodeURIComponent(boutId)}`,
+        'PATCH',
+        payload
+      );
+    } else {
+      const postRes = await executeSupabaseRest('pizza_wars_votes', 'POST', payload);
+      // Fallback if unique constraint on user_hash+bout_id triggered
+      if (!postRes.success) {
+        await executeSupabaseRest(
+          `pizza_wars_votes?user_hash=eq.${encodeURIComponent(userHash)}&bout_id=eq.${encodeURIComponent(boutId)}`,
+          'PATCH',
+          payload
+        );
+      }
+    }
+  } finally {
+    isSyncingVote = false;
   }
 
-  await syncUserScoreToCloud(0, 0, true);
   await fetchCloudVotesAndSync();
   await recalculateAllCloudPlayerScores();
 }
@@ -1486,7 +1521,7 @@ async function recalculateAllCloudPlayerScores() {
     let correct = 0;
     uVotes.forEach(v => {
       const bout = appState.bouts[v.bout_id];
-      if (bout && bout.winner && v.predicted_seed === bout.winner.seed) {
+      if (bout && bout.winner && Number(v.predicted_seed) === Number(bout.winner.seed)) {
         correct++;
       }
     });
@@ -1513,7 +1548,7 @@ async function syncUserScoreToCloud(score, correctCount, skipLeaderboardRefresh 
   let computedCorrect = 0;
   Object.values(appState.bouts).forEach(bout => {
     if (bout.winner && ledger[bout.id]) {
-      if (ledger[bout.id].predictedSeed === bout.winner.seed) {
+      if (Number(ledger[bout.id].predictedSeed) === Number(bout.winner.seed)) {
         computedCorrect++;
       }
     }
@@ -1725,9 +1760,11 @@ window.addEventListener('storage', (e) => {
 });
 
 setInterval(() => {
-  fetchCloudVotesAndSync();
-  fetchCloudLeaderboard();
-  fetchCloudTournamentState();
+  if (!isSyncingVote) {
+    fetchCloudVotesAndSync();
+    fetchCloudLeaderboard();
+    fetchCloudTournamentState();
+  }
 }, 4000);
 
 function checkPlayerIdentity() {
@@ -1768,6 +1805,12 @@ async function savePlayerName() {
     return;
   }
 
+  const previousName = (localStorage.getItem(PLAYER_NAME_KEY) || '').trim().toUpperCase();
+  if (previousName && previousName !== cleanName) {
+    // Switching pilot identity -> clear previous user's local vote cache before loading new user
+    localStorage.removeItem(VOTE_STORAGE_KEY);
+  }
+
   syncIdentitySecretFromName(cleanName);
   const deterministicHash = await getUserIdentityHash(cleanName);
 
@@ -1783,19 +1826,16 @@ async function savePlayerName() {
   if (existingUserRes.success && Array.isArray(existingUserRes.data) && existingUserRes.data.length > 0) {
     const primaryRecord = existingUserRes.data[0];
 
-    if (existingUserRes.data.length > 1) {
-      for (let i = 1; i < existingUserRes.data.length; i++) {
-        const dupRow = existingUserRes.data[i];
-        if (dupRow.player_name) {
-          await executeSupabaseRest(`pizza_wars_scores?ctid=eq.${dupRow.ctid || 0}`, 'DELETE');
-        }
-      }
-    }
-
     await executeSupabaseRest(
       `pizza_wars_scores?player_name=eq.${encodeURIComponent(cleanName)}`,
       'PATCH',
       { user_hash: deterministicHash, last_active_date: getTodayDateString(), updated_at: new Date().toISOString() }
+    );
+
+    await executeSupabaseRest(
+      `pizza_wars_votes?player_name=eq.${encodeURIComponent(cleanName)}`,
+      'PATCH',
+      { user_hash: deterministicHash, updated_at: new Date().toISOString() }
     );
 
     document.getElementById('current-player-score').innerText = primaryRecord.score || 0;
@@ -1803,7 +1843,7 @@ async function savePlayerName() {
     await syncUserScoreToCloud(0, 0, true);
   }
 
-  await fetchCloudVotesAndSync();
+  await fetchCloudVotesAndSync(true);
   await updateLeaderboardAndScore(true);
   await fetchCloudLeaderboard();
   renderBracket();
@@ -1824,10 +1864,10 @@ function getLocalVotesLedger() {
 function saveLocalVote(boutId, teamIndex, token, predictedTeam) {
   const ledger = getLocalVotesLedger();
   ledger[boutId] = {
-    teamIndex,
+    teamIndex: Number(teamIndex),
     token,
     predictedTeamName: predictedTeam ? predictedTeam.name : '',
-    predictedSeed: predictedTeam ? predictedTeam.seed : null
+    predictedSeed: predictedTeam ? Number(predictedTeam.seed) : null
   };
   localStorage.setItem(VOTE_STORAGE_KEY, JSON.stringify(ledger));
   updateLeaderboardAndScore(true);
@@ -1843,8 +1883,8 @@ async function updateLeaderboardAndScore(pushToCloud = true) {
 
   Object.values(appState.bouts).forEach(bout => {
     if (bout.winner && ledger[bout.id]) {
-      const predSeed = ledger[bout.id].predictedSeed;
-      if (predSeed === bout.winner.seed) {
+      const predSeed = Number(ledger[bout.id].predictedSeed);
+      if (predSeed === Number(bout.winner.seed)) {
         correctCount++;
       }
     }
@@ -1935,17 +1975,17 @@ async function handleVoteClick(boutId, teamIndex) {
   const existingVote = ledger[boutId];
   const expectedToken = await generateBoutSaltedHash(boutId);
 
-  if (existingVote && existingVote.token === expectedToken && existingVote.teamIndex === teamIndex) {
+  if (existingVote && existingVote.token === expectedToken && Number(existingVote.teamIndex) === Number(teamIndex)) {
     sfxBuzz();
     return;
   }
 
-  if (existingVote && existingVote.token === expectedToken && existingVote.teamIndex !== teamIndex) {
-    const prevTeamName = existingVote.teamIndex === 1 ? (bout.t1?.name || "Team 1") : (bout.t2?.name || "Team 2");
-    const newTeamName = teamIndex === 1 ? (bout.t1?.name || "Team 1") : (bout.t2?.name || "Team 2");
-    const chosenTeam = teamIndex === 1 ? bout.t1 : bout.t2;
+  if (existingVote && existingVote.token === expectedToken && Number(existingVote.teamIndex) !== Number(teamIndex)) {
+    const prevTeamName = Number(existingVote.teamIndex) === 1 ? (bout.t1?.name || "Team 1") : (bout.t2?.name || "Team 2");
+    const newTeamName = Number(teamIndex) === 1 ? (bout.t1?.name || "Team 1") : (bout.t2?.name || "Team 2");
+    const chosenTeam = Number(teamIndex) === 1 ? bout.t1 : bout.t2;
 
-    pendingVoteChange = { boutId, teamIndex, prevTeamIndex: existingVote.teamIndex, expectedToken, chosenTeam };
+    pendingVoteChange = { boutId, teamIndex: Number(teamIndex), prevTeamIndex: Number(existingVote.teamIndex), expectedToken, chosenTeam };
     document.getElementById('confirm-modal-text').innerText = 
       `You previously predicted "${prevTeamName}". Would you like to switch your prediction to "${newTeamName}"?`;
     document.getElementById('confirm-modal').style.display = 'flex';
@@ -1953,10 +1993,10 @@ async function handleVoteClick(boutId, teamIndex) {
     return;
   }
 
-  if (teamIndex === 1) bout.v1++;
+  if (Number(teamIndex) === 1) bout.v1++;
   else bout.v2++;
 
-  const chosenTeam = teamIndex === 1 ? bout.t1 : bout.t2;
+  const chosenTeam = Number(teamIndex) === 1 ? bout.t1 : bout.t2;
   saveLocalVote(boutId, teamIndex, expectedToken, chosenTeam);
   saveState(appState);
   sfxCoin();
@@ -2028,12 +2068,12 @@ async function renderBracket() {
 
     const expectedToken = await generateBoutSaltedHash(bout.id);
     const hasVoted = ledger[bout.id] && ledger[bout.id].token === expectedToken;
-    const votedTeamIndex = hasVoted ? ledger[bout.id].teamIndex : null;
+    const votedTeamIndex = hasVoted ? Number(ledger[bout.id].teamIndex) : null;
 
     let predictionAwardedHtml = '';
     if (bout.winner && hasVoted) {
-      const predSeed = ledger[bout.id].predictedSeed;
-      if (predSeed === bout.winner.seed) {
+      const predSeed = Number(ledger[bout.id].predictedSeed);
+      if (predSeed === Number(bout.winner.seed)) {
         predictionAwardedHtml = '<span class="points-awarded-badge">+10 PTS ✔</span>';
       }
     }
@@ -2109,7 +2149,7 @@ function getBoutContainer(bout) {
 }
 
 async function advanceCurrentStage() {
-  await fetchCloudVotesAndSync();
+  await fetchCloudVotesAndSync(true);
 
   const stage = appState.activeStage;
   sfxCoin();
@@ -2374,7 +2414,7 @@ async function resetTournamentPrompt() {
     await executeSupabaseRest('pizza_wars_scores?score=gte.0', 'PATCH', { score: 0, correct_picks: 0 });
     await syncTournamentStateToCloud();
 
-    await fetchCloudVotesAndSync();
+    await fetchCloudVotesAndSync(true);
     await updateLeaderboardAndScore(true);
     renderAdminControls();
     renderBracket();
