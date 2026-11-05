@@ -991,7 +991,7 @@
     </div>
 
     <!-- Section Heading for Full View -->
-    <div id="losers-anchor" class="section-divider-title">► LOSERS BRACKET (DOUBLE ELIMINATION REDEMINATION)</div>
+    <div id="losers-anchor" class="section-divider-title">► LOSERS BRACKET (DOUBLE ELIMINATION REDEMPTION)</div>
 
     <!-- Losers Bracket View -->
     <div id="losers-view" class="bracket-container">
@@ -1213,6 +1213,7 @@ initBackgroundPizzas();
 const STORAGE_KEY = 'PW26_TOURNAMENT_STATE_V9';
 const CLIENT_SECRET_KEY = 'PW26_CLIENT_EPHEMERAL_SECRET';
 const PLAYER_NAME_KEY = 'PW26_PLAYER_LAST_NAME';
+const LAST_LOGIN_DATE_KEY = 'PW26_LAST_LOGIN_DATE';
 const VOTE_STORAGE_KEY = 'PW26_USER_VOTES_LEDGER';
 const SUPABASE_URL_KEY = 'PW26_CFG_SUPABASE_URL';
 const SUPABASE_KEY_KEY = 'PW26_CFG_SUPABASE_ANON_KEY';
@@ -1229,22 +1230,29 @@ function getSupabaseConfig() {
   };
 }
 
-// Ephemeral client secret - made persistent in localStorage
-let clientSecret = localStorage.getItem(CLIENT_SECRET_KEY);
-function ensureClientSecret() {
-  clientSecret = localStorage.getItem(CLIENT_SECRET_KEY);
-  if (!clientSecret) {
-    try {
-      clientSecret = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-        .map(b => b.toString(16).padStart(2, '0')).join('');
-    } catch(e) {
-      clientSecret = 'sec_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-    }
-    localStorage.setItem(CLIENT_SECRET_KEY, clientSecret);
-  }
+function getTodayDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Client secret is now deterministically tied to the active Player Name so entering a name assumes that identity
+let clientSecret = localStorage.getItem(CLIENT_SECRET_KEY) || '';
+
+function syncIdentitySecretFromName(cleanName) {
+  if (!cleanName) return '';
+  clientSecret = `IDENT_${cleanName.trim().toUpperCase()}`;
+  localStorage.setItem(CLIENT_SECRET_KEY, clientSecret);
   return clientSecret;
 }
-ensureClientSecret();
+
+// Initialize secret from stored name if present
+const existingStoredName = localStorage.getItem(PLAYER_NAME_KEY);
+if (existingStoredName) {
+  syncIdentitySecretFromName(existingStoredName);
+}
 
 // SHA-256 WebCrypto utility with offline math fallback
 async function sha256(str) {
@@ -1266,17 +1274,19 @@ async function sha256(str) {
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16).padStart(16, '0');
 }
 
-// User persistent cryptographic identity hash
-async function getUserIdentityHash() {
-  ensureClientSecret();
-  return await sha256(`PW26_USER_IDENT_${clientSecret}`);
+// User persistent cryptographic identity hash derived directly from their Last Name
+async function getUserIdentityHash(overrideName = null) {
+  const activeName = (overrideName || localStorage.getItem(PLAYER_NAME_KEY) || '').trim().toUpperCase();
+  const secret = syncIdentitySecretFromName(activeName) || 'ANONYMOUS';
+  return await sha256(`PW26_USER_IDENT_${secret}`);
 }
 
-// Fixed Daily Salt Rotation: Removed dynamic epoch dates to keep predictions persistent daily!
+// Deterministic bout token per user identity
 async function generateBoutSaltedHash(boutId) {
-  ensureClientSecret();
+  const activeName = (localStorage.getItem(PLAYER_NAME_KEY) || '').trim().toUpperCase();
+  const secret = syncIdentitySecretFromName(activeName) || 'ANONYMOUS';
   const salt = `PW26_SALT_PERSISTENT_v2`;
-  return await sha256(`${salt}::${boutId}::${clientSecret}`);
+  return await sha256(`${salt}::${boutId}::${secret}`);
 }
 
 /**
@@ -1305,10 +1315,13 @@ function initSupabaseRealtime() {
         fetchCloudVotesAndSync();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pizza_wars_scores' }, async (payload) => {
-        const myHash = await getUserIdentityHash();
-        if (payload.eventType === 'DELETE' && payload.old && payload.old.user_hash === myHash) {
-          clearDeletedUserInformation();
-          return;
+        const myName = localStorage.getItem(PLAYER_NAME_KEY);
+        if (myName && payload.eventType === 'DELETE' && payload.old) {
+          const myHash = await getUserIdentityHash(myName);
+          if (payload.old.user_hash === myHash || (payload.old.player_name && payload.old.player_name.toUpperCase() === myName.toUpperCase())) {
+            clearDeletedUserInformation();
+            return;
+          }
         }
         fetchCloudLeaderboard();
         fetchCloudVotesAndSync();
@@ -1328,12 +1341,12 @@ function clearDeletedUserInformation() {
     delete appState.leaderboard[clientSecret];
   }
   localStorage.removeItem(PLAYER_NAME_KEY);
+  localStorage.removeItem(LAST_LOGIN_DATE_KEY);
   localStorage.removeItem(VOTE_STORAGE_KEY);
   localStorage.removeItem(CLIENT_SECRET_KEY);
+  clientSecret = '';
   hadCloudRecord = false;
 
-  // Generate fresh client identity secret
-  ensureClientSecret();
   saveState(appState, true);
 
   document.getElementById('current-player-name').innerText = '---';
@@ -1380,7 +1393,8 @@ async function fetchCloudVotesAndSync() {
   if (!res.success || !Array.isArray(res.data)) return;
 
   cloudVotesData = res.data;
-  const myHash = await getUserIdentityHash();
+  const activeName = (localStorage.getItem(PLAYER_NAME_KEY) || '').trim().toUpperCase();
+  const myHash = activeName ? await getUserIdentityHash(activeName) : null;
 
   // Reset all bout vote tallies before counting live database votes
   Object.values(appState.bouts).forEach(bout => {
@@ -1396,7 +1410,8 @@ async function fetchCloudVotesAndSync() {
       if (row.team_index === 1) bout.v1++;
       else if (row.team_index === 2) bout.v2++;
     }
-    if (row.user_hash === myHash) {
+    // Match votes belonging to this user's hash or player_name
+    if (activeName && (row.user_hash === myHash || (row.player_name && row.player_name.trim().toUpperCase() === activeName))) {
       const expectedToken = await generateBoutSaltedHash(row.bout_id);
       rebuiltLedger[row.bout_id] = {
         teamIndex: row.team_index,
@@ -1428,7 +1443,7 @@ async function syncVoteToCloud(boutId, stage, teamIndex, predictedTeam) {
     true
   );
 
-  const userHash = await getUserIdentityHash();
+  const userHash = await getUserIdentityHash(playerName);
   const payload = {
     user_hash: userHash,
     player_name: playerName,
@@ -1529,8 +1544,8 @@ async function syncUserScoreToCloud(score, correctCount, skipLeaderboardRefresh 
   const playerName = (localStorage.getItem(PLAYER_NAME_KEY) || '').trim().toUpperCase();
   if (!playerName) return;
 
-  const userHash = await getUserIdentityHash();
-  const dateEpoch = new Date().toISOString().slice(0, 10);
+  const userHash = await getUserIdentityHash(playerName);
+  const dateEpoch = getTodayDateString();
 
   // Calculate accurate score from current local ledger before syncing
   const ledger = getLocalVotesLedger();
@@ -1593,16 +1608,22 @@ async function fetchCloudLeaderboard() {
     if (statusElem) statusElem.innerText = `CONNECTED (${res.data.length} PLAYERS)`;
 
     // Check if the current active user was deleted from pizza_wars_scores in Supabase
-    const myHash = await getUserIdentityHash();
     const myName = localStorage.getItem(PLAYER_NAME_KEY);
-    const stillExists = cloudLeaderboardData.some(row => row.user_hash === myHash);
+    if (myName) {
+      const myHash = await getUserIdentityHash(myName);
+      const stillExists = cloudLeaderboardData.some(row => row.user_hash === myHash || (row.player_name && row.player_name.trim().toUpperCase() === myName.trim().toUpperCase()));
 
-    if (myName && hadCloudRecord && !stillExists) {
-      clearDeletedUserInformation();
-      return;
-    }
-    if (stillExists) {
-      hadCloudRecord = true;
+      if (hadCloudRecord && !stillExists) {
+        // Double check directly against DB in case leaderboard has >100 players
+        const directCheck = await executeSupabaseRest(`pizza_wars_scores?user_hash=eq.${encodeURIComponent(myHash)}&select=user_hash`);
+        if (directCheck.success && Array.isArray(directCheck.data) && directCheck.data.length === 0) {
+          clearDeletedUserInformation();
+          return;
+        }
+      }
+      if (stillExists) {
+        hadCloudRecord = true;
+      }
     }
 
     renderLeaderboardTable();
@@ -1773,7 +1794,7 @@ window.addEventListener('storage', (e) => {
   }
 });
 
-// Periodic cloud & local sync fallback poll (ensures real-time updates even if WebSockets are blocked)
+// Periodic cloud & local sync fallback poll
 setInterval(() => {
   fetchCloudVotesAndSync();
   fetchCloudLeaderboard();
@@ -1781,14 +1802,23 @@ setInterval(() => {
 }, 4000);
 
 /**
- * PLAYER IDENTITY & REGISTRATION POPUP
+ * PLAYER IDENTITY & DAILY LOGIN PROMPT
+ * Prompts the user each calendar day for their Last Name and assumes that identity & user_hash
  */
 function checkPlayerIdentity() {
   const storedName = localStorage.getItem(PLAYER_NAME_KEY);
-  if (!storedName) {
+  const lastLoginDate = localStorage.getItem(LAST_LOGIN_DATE_KEY);
+  const todayDate = getTodayDateString();
+
+  if (storedName) {
+    syncIdentitySecretFromName(storedName);
+    document.getElementById('current-player-name').innerText = storedName.toUpperCase();
+  }
+
+  // If no name is saved OR they haven't logged in today, show the Last Name popup
+  if (!storedName || lastLoginDate !== todayDate) {
     promptPlayerNameModal();
   } else {
-    document.getElementById('current-player-name').innerText = storedName.toUpperCase();
     updateLeaderboardAndScore(true);
   }
 }
@@ -1804,34 +1834,52 @@ async function savePlayerName() {
   const raw = document.getElementById('player-name-input').value.trim();
   if (!raw) {
     sfxBuzz();
-    alert("Name already in use. Please enter a new name. Keep it PG.");
+    alert("Please enter your last name. Keep it PG.");
     return;
   }
 
-  const cleanName = raw.toUpperCase().replace(/[^A-Z0-9\-\'\s]/g, '');
-  const userHash = await getUserIdentityHash();
-  
-  // Refresh leaderboard before checking for conflicts
-  await fetchCloudLeaderboard();
-
-  // Unique Username Guard: Validate username state against Supabase to avoid duplicates
-  if (isCloudOnline || cloudLeaderboardData.length > 0) {
-    const conflict = cloudLeaderboardData.find(row => 
-      row.player_name.trim().toUpperCase() === cleanName && 
-      row.user_hash !== userHash
-    );
-    if (conflict) {
-      sfxBuzz();
-      alert("ERROR: PILOT SIGNATURE REJECTED!\n\nTHAT USERNAME IS ALREADY ASSIGNED TO ANOTHER ARCADE CABINET. PLEASE CHOOSE A UNIQUE ID.");
-      return;
-    }
+  const cleanName = raw.toUpperCase().replace(/[^A-Z0-9\-\'\s]/g, '').trim();
+  if (!cleanName) {
+    sfxBuzz();
+    return;
   }
 
+  // Deterministically update their clientSecret & user_hash to match the entered Last Name
+  syncIdentitySecretFromName(cleanName);
+  const userHash = await getUserIdentityHash(cleanName);
+
+  // Store the player name and record today's login date so they aren't prompted again until tomorrow
   localStorage.setItem(PLAYER_NAME_KEY, cleanName);
+  localStorage.setItem(LAST_LOGIN_DATE_KEY, getTodayDateString());
+
   document.getElementById('current-player-name').innerText = cleanName;
   document.getElementById('player-modal').style.display = 'none';
   sfxFanfare();
+
+  // If an older record exists in Supabase with this player_name under an old random user_hash, migrate its user_hash
+  const existingUserRes = await executeSupabaseRest(`pizza_wars_scores?player_name=eq.${encodeURIComponent(cleanName)}&select=*`);
+  if (existingUserRes.success && Array.isArray(existingUserRes.data) && existingUserRes.data.length > 0) {
+    const existingRow = existingUserRes.data[0];
+    if (existingRow.user_hash !== userHash) {
+      // Update the existing row's user_hash to the deterministic hash
+      await executeSupabaseRest(
+        `pizza_wars_scores?player_name=eq.${encodeURIComponent(cleanName)}`,
+        'PATCH',
+        { user_hash: userHash, last_active_date: getTodayDateString(), updated_at: new Date().toISOString() }
+      );
+      await executeSupabaseRest(
+        `pizza_wars_votes?player_name=eq.${encodeURIComponent(cleanName)}`,
+        'PATCH',
+        { user_hash: userHash, updated_at: new Date().toISOString() }
+      );
+    }
+    hadCloudRecord = true;
+  }
+
+  // Pull all votes and scores associated with this assumed identity from Supabase
+  await fetchCloudVotesAndSync();
   await updateLeaderboardAndScore(true);
+  await fetchCloudLeaderboard();
   renderBracket();
 }
 
@@ -1869,6 +1917,7 @@ async function updateLeaderboardAndScore(pushToCloud = true) {
   const playerName = (localStorage.getItem(PLAYER_NAME_KEY) || '').trim().toUpperCase();
   if (!playerName) return;
 
+  syncIdentitySecretFromName(playerName);
   const ledger = getLocalVotesLedger();
   let correctCount = 0;
 
@@ -1942,7 +1991,7 @@ function renderLeaderboardTable() {
     else if (rank === 2) { rankClass = 'rank-2'; crown = ' ★'; }
     else if (rank === 3) { rankClass = 'rank-3'; crown = ' ♦'; }
 
-    const isCurrent = (player.name === activeUser);
+    const isCurrent = (player.name && player.name.trim().toUpperCase() === activeUser);
     const row = document.createElement('tr');
     if (isCurrent) row.className = 'current-user-row';
 
